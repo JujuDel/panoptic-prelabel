@@ -127,7 +127,7 @@ Input photos are always used as displayed. The EXIF orientation is applied on lo
 
 ## 5. Measurements
 
-The reference is the human-corrected map: `resolve` run on `examples/*/cvat_corrected.zip`. That correction was made by one person, starting from the pre-labels of an earlier version, whose regions were also named by Claude. **These are agreement numbers on 4 photos, not accuracy against independent ground truth.** Metrics follow panopticapi: a segment matches at IoU > 0.5, statistics are pooled over the images, then averaged over classes. The full per-class tables are in [`docs/results.md`](docs/results.md).
+The reference is the human-corrected map: `resolve` run on `examples/*/cvat_corrected.zip`. That correction was made by one person, starting from the pre-labels of an earlier version, whose regions were also named by Claude. **These are agreement numbers on 4 photos, not accuracy against independent ground truth.** Metrics follow panopticapi: a segment matches at IoU > 0.5, statistics are pooled over the images, then averaged over classes. `compare` gives the same PQ, SQ and RQ as the official panopticapi to 1e-9, on these examples and on random maps with void and crowd regions (`tests/test_panopticapi_parity.py`, run in CI). The full per-class tables are in [`docs/results.md`](docs/results.md).
 
 **How far the automatic pre-annotation is from the final map.** Today's pre-annotation, replayed from the recorded model outputs in `examples/*/prelabel/`, compared with the final corrected map. The correction itself was made on the July pre-labels, so this approximates the correction effort; it does not measure it:
 
@@ -153,13 +153,13 @@ Nine pixels in ten of the pre-annotation have the class of the final map, but on
 ## 6. Limits and next steps
 
 **Limits.**
-- Four photos and one annotator. There is no GPU path and no batching: the code handles one image at a time.
+- Four photos and one annotator. GPU execution can be configured but has not been measured yet, and there is no batching: the code handles one image at a time.
 - The CVAT corrections in `examples/` were made from the July pre-labels of an earlier, unpublished version of this code, which this repository re-implements. The corrected exports are therefore not edits of today's `coco_for_cvat.zip`.
 - Mask R-CNN outputs 28×28 masks, so boundaries are coarse. It knows only COCO's classes: bollard, buoy and shoe have no equivalent, and `sign` comes only from stop signs.
 - `MaskRCNN-12.onnx` clips every box to x ≤ 1279, y ≤ 959, limits frozen in the exported graph and not documented in the model card. A portrait photo resized to the recommended short side of 800 px lost everything below y = 960, including a standing person's legs and most of their score. The input is therefore capped at 1280 × 960, so portrait photos run at lower resolution. See `things.py` and `tests/test_things.py`.
 - CVAT polygons cannot hold holes. Masks with large holes are exported as RLE ("mask" shapes in CVAT).
 
-**What I would do next, in order.**
+**What I would do next, in order.** The code for items 1 and 2 is ready in [`benchmarks/`](benchmarks/README.md) (latency on CPU / CUDA / TensorRT, a Mask2Former baseline, COCO val2017 with panopticapi). It needs a GPU and access to model hubs, so it has not been run yet.
 1. **Mask2Former / OneFormer baseline** (COCO-panoptic weights) on the same four photos and on a few dozen COCO-panoptic validation images, with PQ things/stuff for both designs. The goal is to keep the detector + regions split only where the numbers justify it.
 2. **GPU and deployment path.**
    - Build a TensorRT engine for the detector.
@@ -174,6 +174,7 @@ Nine pixels in ten of the pre-annotation have the class of the final map, but on
 - Config in YAML, validated when loaded.
 - Tests. Every `resolve` rule has a synthetic case, and so do the config validation and the EXIF-rotation path. An opt-in test (`RUN_MODELS=1 pytest tests/test_models.py`, about 3 min on CPU) runs the real models and checks they still reproduce the recorded outputs in `examples/*/prelabel/`. `compare` is checked against hand-computed TP/FP/FN. The detector's pre/post-processing is tested with a fake ONNX session, so no weights are needed. The example scenes serve as regression cases.
 - `ruff` and `mypy` run in CI.
+- Model execution is configurable (`things.providers` for onnxruntime, `stuff.device` for PyTorch). Nothing was measured on a GPU yet.
 - CI runs lint, types and tests on the exact versions in `constraints.txt`, and the tests again on the latest versions allowed by `pyproject.toml`. It builds and installs the wheel, runs the pipeline end to end on the recorded model outputs, and regenerates `docs/results.md`.
 
 ## 8. Licenses and credits

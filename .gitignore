@@ -6,6 +6,10 @@ weights/
 
 # pipeline outputs
 out/
+.cache/
+coco_cache/
+# benchmark predictions on COCO images (hundreds of PNGs): summaries only are kept
+benchmarks/results/*/coco_val/
 runs/
 work/
 
