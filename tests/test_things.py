@@ -59,6 +59,9 @@ def test_detector_maps_classes_and_rescales_boxes(monkeypatch, cfg):
         def get_inputs(self):
             return [types.SimpleNamespace(name="image")]
 
+        def get_providers(self):
+            return ["CPUExecutionProvider"]
+
         def run(self, _, feeds):
             t = feeds["image"]
             calls["shape"] = t.shape
@@ -79,3 +82,27 @@ def test_detector_maps_classes_and_rescales_boxes(monkeypatch, cfg):
     assert [a.attributes["coco_class"] for a in out] == ["person", "handbag"]
     _, xs = np.nonzero(out[0].mask)
     assert abs(xs.min() - 48) <= 2 and abs(xs.max() - 240) <= 2  # 80/(5/3), 400/(5/3)
+
+
+def test_detector_passes_the_configured_providers(monkeypatch, cfg, capsys):
+    seen = {}
+
+    class Session:
+        def __init__(self, path, sess_options=None, providers=None):
+            seen["providers"] = providers
+
+        def get_inputs(self):
+            return [types.SimpleNamespace(name="image")]
+
+        def get_providers(self):
+            return ["CPUExecutionProvider"]  # as if CUDA could not be loaded
+
+    fake = types.ModuleType("onnxruntime")
+    fake.InferenceSession = Session
+    fake.SessionOptions = lambda: types.SimpleNamespace(log_severity_level=0)
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake)
+    cfg.data["things"]["providers"] = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    det = ThingDetector(cfg, model_path="unused.onnx")
+    assert seen["providers"] == ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    assert det.providers == ["CPUExecutionProvider"]
+    assert "onnxruntime runs" in capsys.readouterr().out  # the fallback is reported, not silent

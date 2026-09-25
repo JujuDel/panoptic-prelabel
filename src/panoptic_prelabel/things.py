@@ -71,18 +71,27 @@ def paste_mask(mask28: np.ndarray, box: np.ndarray, height: int, width: int, thr
 
 
 class ThingDetector:
-    def __init__(self, cfg: Config, model_path: str | None = None):
-        import onnxruntime as ort  # heavy import kept local: resolve/tests do not need it
-
+    def __init__(self, cfg: Config, model_path: str | None = None, session=None):
+        """`session`: an existing onnxruntime InferenceSession (e.g. built with
+        provider options such as TensorRT's), used instead of creating one."""
         tcfg = cfg["things"]
         self.cfg = tcfg
         # validated by Config; a null value removes a default mapping
         self.mapping = {k: v for k, v in tcfg["coco_to_ontology"].items() if v is not None}
-        opts = ort.SessionOptions()
-        opts.log_severity_level = 3
-        self.session = ort.InferenceSession(
-            model_path or tcfg["model"], sess_options=opts, providers=["CPUExecutionProvider"]
-        )
+        if session is None:
+            import onnxruntime as ort  # heavy import kept local: resolve/tests do not need it
+
+            opts = ort.SessionOptions()
+            opts.log_severity_level = 3
+            session = ort.InferenceSession(model_path or tcfg["model"], sess_options=opts, providers=tcfg["providers"])
+            requested = tcfg["providers"]
+        else:
+            requested = list(session.get_providers())
+        self.session = session
+        # onnxruntime silently skips a provider it cannot load: record what is really used
+        self.providers: list[str] = list(self.session.get_providers())
+        if self.providers[:1] != requested[:1]:
+            print(f"note: requested {requested}, onnxruntime runs {self.providers}")
         self.input_name = self.session.get_inputs()[0].name
 
     def __call__(self, rgb: np.ndarray) -> list[Annotation]:

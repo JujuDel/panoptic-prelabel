@@ -18,7 +18,7 @@ classifiers = [
 # Core: everything resolve / export-web / tests need. No deep-learning framework.
 # Ranges here; the exact versions everything was run with are in constraints.txt.
 dependencies = [
-  "numpy>=2.0,<3",
+  "numpy>=1.26,<3",
   "opencv-python-headless>=4.9,<5",
   "pillow>=10.1",
   "pyyaml>=6.0",

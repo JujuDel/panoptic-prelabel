@@ -28,7 +28,10 @@ def hex_to_rgb(color: str) -> tuple[int, int, int]:
     return int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
 
 
-ENUMS: dict[tuple[str, ...], set[str]] = {("resolve", "fill"): {"nearest", "void"}}
+ENUMS: dict[tuple[str, ...], set[str]] = {
+    ("resolve", "fill"): {"nearest", "void"},
+    ("stuff", "device"): {"cpu", "cuda"},
+}
 # mappings whose keys are open (any COCO class name); their values are checked in Config
 OPEN_MAPPINGS = {("things", "coco_to_ontology")}
 # lists whose items must be class names of the ontology
@@ -105,9 +108,9 @@ class Config:
         self.by_id = {c.id: c for c in self.categories}
         if len(self.by_name) != len(self.categories) or len(self.by_id) != len(self.categories):
             raise ValueError("category names and ids must be unique")
-        fill = data["resolve"]["fill"]
-        if fill not in ENUMS[("resolve", "fill")]:
-            raise ValueError(f"config resolve.fill: {fill!r} is not one of {sorted(ENUMS[('resolve', 'fill')])}")
+        for (section, key), allowed in ENUMS.items():
+            if data[section][key] not in allowed:
+                raise ValueError(f"config {section}.{key}: {data[section][key]!r} is not one of {sorted(allowed)}")
         self._check_priority()
         for section, key in CLASS_LISTS:
             unknown = sorted(set(data[section][key]) - set(self.by_name))

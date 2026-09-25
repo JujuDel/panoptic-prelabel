@@ -21,6 +21,7 @@ def load(tmp_path, text):
         ("web:\n  instance_shades: [a]\n", "expected float"),
         ("things:\n  coco_to_ontology:\n    motorcycle: scooter\n", "unknown classes"),
         ("resolve:\n  merge_stuff: 1\n", "expected bool"),
+        ("stuff:\n  device: gpu\n", "not one of"),
     ],
 )
 def test_bad_overrides_are_rejected(tmp_path, text, error):

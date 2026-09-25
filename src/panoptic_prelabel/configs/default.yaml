@@ -43,6 +43,9 @@ categories:
 # ---------------------------------------------------------------------------
 things:
   model: weights/MaskRCNN-12.onnx
+  # onnxruntime execution providers, in order of preference; e.g. on an NVIDIA GPU
+  # [TensorrtExecutionProvider, CUDAExecutionProvider, CPUExecutionProvider]
+  providers: [CPUExecutionProvider]
   score_threshold: 0.5
   mask_threshold: 0.5
   min_area: 64                # px, at full resolution
@@ -67,6 +70,8 @@ things:
 stuff:
   checkpoint: weights/mobile_sam.pt
   model_type: vit_t
+  device: cpu                 # cpu or cuda
+  points_per_batch: 64        # SAM prompts decoded per forward pass (raise it on a GPU)
   max_side: 1024              # the image is downscaled to this before SAM
   points_per_side: 32
   pred_iou_thresh: 0.86

@@ -81,12 +81,16 @@ class RegionProposer:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             sam = sam_model_registry[scfg["model_type"]](checkpoint=checkpoint or scfg["checkpoint"])
-        sam.to("cpu").eval()
+        self.device = scfg["device"]
+        if self.device == "cuda" and not torch.cuda.is_available():
+            raise RuntimeError("stuff.device is 'cuda' but torch sees no CUDA device")
+        sam.to(self.device).eval()
         self.generator = SamAutomaticMaskGenerator(
             sam,
             points_per_side=scfg["points_per_side"],
             pred_iou_thresh=scfg["pred_iou_thresh"],
             stability_score_thresh=scfg["stability_score_thresh"],
+            points_per_batch=scfg["points_per_batch"],
         )
 
     def __call__(self, rgb: np.ndarray, things: np.ndarray) -> Regions:
