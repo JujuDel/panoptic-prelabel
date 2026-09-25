@@ -1,0 +1,35 @@
+# Class of each numbered region in regions.jpg.
+# label: a class name from the config (stuff such as sky, or a thing the
+# detector does not know such as bollard), or `ignore` to drop the region.
+# Regions are matched by `point` (x, y), so this file survives a re-run.
+regions:
+  - {id: 1, point: [429, 359], label: sky}
+  - {id: 2, point: [286, 1578], label: pavement}
+  - {id: 3, point: [128, 992], label: sea}
+  - {id: 4, point: [186, 1373], label: pavement}
+  - {id: 5, point: [880, 1373], label: pavement}
+  - {id: 6, point: [879, 1029], label: sea}
+  - {id: 7, point: [280, 982], label: bollard}
+  - {id: 8, point: [837, 1157], label: pavement}
+  - {id: 9, point: [98, 1522], label: pavement}
+  - {id: 10, point: [917, 821], label: tree}
+  - {id: 11, point: [16, 675], label: bollard}
+  - {id: 12, point: [59, 1666], label: pavement}
+  - {id: 13, point: [289, 749], label: bollard}
+  - {id: 14, point: [20, 564], label: bollard}
+  - {id: 15, point: [59, 1191], label: pavement}
+  - {id: 16, point: [609, 915], label: sea}
+  - {id: 17, point: [233, 1085], label: pavement}
+  - {id: 18, point: [18, 1538], label: bollard}
+  - {id: 19, point: [629, 1092], label: pavement}
+  - {id: 20, point: [720, 1681], label: pavement}
+  - {id: 21, point: [369, 1081], label: pavement}
+  - {id: 22, point: [14, 1613], label: pavement}
+  - {id: 23, point: [741, 1062], label: bollard}
+  - {id: 24, point: [357, 1100], label: pavement}
+  - {id: 25, point: [919, 1183], label: pavement}
+  - {id: 26, point: [880, 915], label: buoy}
+  - {id: 27, point: [878, 783], label: tree}
+  - {id: 28, point: [875, 936], label: buoy}
+  - {id: 29, point: [608, 994], label: sea}
+  - {id: 30, point: [169, 829], label: building}

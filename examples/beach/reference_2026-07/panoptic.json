@@ -1,0 +1,223 @@
+{
+ "images": [
+  {
+   "id": 1,
+   "file_name": "image.jpg",
+   "width": 1280,
+   "height": 960
+  }
+ ],
+ "annotations": [
+  {
+   "image_id": 1,
+   "file_name": "panoptic.png",
+   "segments_info": [
+    {
+     "id": 1,
+     "category_id": 4,
+     "iscrowd": 0,
+     "area": 48613,
+     "bbox": [
+      860,
+      580,
+      248,
+      312
+     ]
+    },
+    {
+     "id": 2,
+     "category_id": 4,
+     "iscrowd": 0,
+     "area": 806,
+     "bbox": [
+      1098,
+      222,
+      41,
+      32
+     ]
+    },
+    {
+     "id": 3,
+     "category_id": 4,
+     "iscrowd": 0,
+     "area": 1122,
+     "bbox": [
+      275,
+      59,
+      62,
+      39
+     ]
+    },
+    {
+     "id": 4,
+     "category_id": 6,
+     "iscrowd": 0,
+     "area": 2947,
+     "bbox": [
+      251,
+      372,
+      104,
+      56
+     ]
+    },
+    {
+     "id": 5,
+     "category_id": 3,
+     "iscrowd": 0,
+     "area": 30675,
+     "bbox": [
+      109,
+      711,
+      212,
+      249
+     ]
+    },
+    {
+     "id": 6,
+     "category_id": 1,
+     "iscrowd": 0,
+     "area": 65398,
+     "bbox": [
+      77,
+      186,
+      388,
+      500
+     ]
+    },
+    {
+     "id": 7,
+     "category_id": 1,
+     "iscrowd": 0,
+     "area": 307997,
+     "bbox": [
+      0,
+      0,
+      914,
+      960
+     ]
+    },
+    {
+     "id": 8,
+     "category_id": 13,
+     "iscrowd": 0,
+     "area": 140285,
+     "bbox": [
+      221,
+      0,
+      1059,
+      218
+     ]
+    },
+    {
+     "id": 9,
+     "category_id": 12,
+     "iscrowd": 0,
+     "area": 630957,
+     "bbox": [
+      175,
+      69,
+      1105,
+      891
+     ]
+    }
+   ]
+  }
+ ],
+ "categories": [
+  {
+   "id": 1,
+   "name": "person",
+   "isthing": 1
+  },
+  {
+   "id": 2,
+   "name": "backpack",
+   "isthing": 1
+  },
+  {
+   "id": 3,
+   "name": "bag",
+   "isthing": 1
+  },
+  {
+   "id": 4,
+   "name": "bird",
+   "isthing": 1
+  },
+  {
+   "id": 5,
+   "name": "dog",
+   "isthing": 1
+  },
+  {
+   "id": 6,
+   "name": "phone",
+   "isthing": 1
+  },
+  {
+   "id": 7,
+   "name": "shoe",
+   "isthing": 1
+  },
+  {
+   "id": 8,
+   "name": "buoy",
+   "isthing": 1
+  },
+  {
+   "id": 9,
+   "name": "bollard",
+   "isthing": 1
+  },
+  {
+   "id": 10,
+   "name": "sky",
+   "isthing": 0
+  },
+  {
+   "id": 11,
+   "name": "sea",
+   "isthing": 0
+  },
+  {
+   "id": 12,
+   "name": "sand",
+   "isthing": 0
+  },
+  {
+   "id": 13,
+   "name": "tree",
+   "isthing": 0
+  },
+  {
+   "id": 14,
+   "name": "grass",
+   "isthing": 0
+  },
+  {
+   "id": 15,
+   "name": "rock",
+   "isthing": 0
+  },
+  {
+   "id": 16,
+   "name": "building",
+   "isthing": 0
+  },
+  {
+   "id": 17,
+   "name": "fountain",
+   "isthing": 0
+  },
+  {
+   "id": 18,
+   "name": "boardwalk",
+   "isthing": 0
+  },
+  {
+   "id": 19,
+   "name": "pavement",
+   "isthing": 0
+  }
+ ]
+}

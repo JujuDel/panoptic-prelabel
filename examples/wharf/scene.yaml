@@ -1,0 +1,5 @@
+# Instance groups: CVAT annotation ids (from cvat_corrected.zip) that are parts
+# of ONE object. Here the backpack was drawn as three shapes because the arm
+# and the strap cut it into pieces.
+groups:
+  - [10, 11, 12]

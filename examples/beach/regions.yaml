@@ -1,0 +1,27 @@
+# Class of each numbered region in regions.jpg.
+# label: a class name from the config (stuff such as sky, or a thing the
+# detector does not know such as bollard), or `ignore` to drop the region.
+# Regions are matched by `point` (x, y), so this file survives a re-run.
+regions:
+  - {id: 1, point: [692, 322], label: sand}
+  - {id: 2, point: [951, 77], label: tree}
+  - {id: 3, point: [589, 53], label: tree}
+  - {id: 4, point: [1160, 87], label: tree}
+  - {id: 5, point: [1249, 929], label: sand}
+  - {id: 6, point: [804, 884], label: person}
+  - {id: 7, point: [422, 637], label: shoe}
+  - {id: 8, point: [761, 937], label: person}
+  - {id: 9, point: [573, 585], label: sand}
+  - {id: 10, point: [1033, 147], label: tree}
+  - {id: 11, point: [726, 746], label: sand}
+  - {id: 12, point: [970, 493], label: sand}
+  - {id: 13, point: [753, 872], label: person}
+  - {id: 14, point: [410, 586], label: shoe}
+  - {id: 15, point: [810, 800], label: sand}
+  - {id: 16, point: [515, 549], label: sand}
+  - {id: 17, point: [590, 515], label: sand}
+  - {id: 18, point: [687, 569], label: sand}
+  - {id: 19, point: [453, 681], label: bag}
+  - {id: 20, point: [502, 665], label: bag}
+  - {id: 21, point: [1178, 189], label: tree}
+  - {id: 22, point: [293, 949], label: backpack}
