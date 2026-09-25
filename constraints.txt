@@ -1,0 +1,16 @@
+# Exact versions this repository was run and tested with (Linux x86_64, Python 3.11).
+#   pip install -c constraints.txt -e ".[dev]"
+#   pip install -c constraints.txt -e ".[models]"   (see README for the CPU-only torch index)
+numpy==2.4.4
+opencv-python-headless==4.13.0.92
+pillow==12.2.0
+pyyaml==6.0.3
+scipy==1.17.1
+onnxruntime==1.25.0
+torch==2.14.0
+torchvision==0.29.0
+timm==1.0.30
+pytest==9.1.1
+ruff==0.16.8
+mypy==1.18.2
+types-PyYAML==6.0.12.20260906

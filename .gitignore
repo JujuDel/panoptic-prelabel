@@ -1,0 +1,28 @@
+# model files: fetched by `panoptic-prelabel download-weights`, never committed
+weights/
+*.onnx
+*.pt
+*.pth
+
+# pipeline outputs
+out/
+runs/
+work/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

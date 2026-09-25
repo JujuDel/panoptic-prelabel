@@ -1,0 +1,145 @@
+# panoptic-prelabel — default configuration.
+#
+# Every stage reads this file. Override it with `--config my.yaml`; keys you
+# leave out keep the values below.
+
+# ---------------------------------------------------------------------------
+# Ontology: 12 "things" (countable, one segment per instance) and 12 "stuff"
+# classes (amorphous, one segment per class). Colors are the CVAT label colors
+# and are reused by every visualisation. The ids are the COCO category ids
+# written to every output.
+# ---------------------------------------------------------------------------
+categories:
+  - {id: 1,  name: person,    isthing: true,  color: "#fa3253"}
+  - {id: 2,  name: backpack,  isthing: true,  color: "#ff6037"}
+  - {id: 3,  name: bag,       isthing: true,  color: "#f78000"}
+  - {id: 4,  name: bird,      isthing: true,  color: "#fafa37"}
+  - {id: 5,  name: dog,       isthing: true,  color: "#ff00cc"}
+  - {id: 6,  name: phone,     isthing: true,  color: "#aaf0d1"}
+  - {id: 7,  name: shoe,      isthing: true,  color: "#733380"}
+  - {id: 8,  name: buoy,      isthing: true,  color: "#ffcc33"}
+  - {id: 9,  name: bollard,   isthing: true,  color: "#8c78f0"}   # also poles, posts, lamp posts
+  - {id: 10, name: car,       isthing: true,  color: "#00e5ff"}
+  - {id: 11, name: truck,     isthing: true,  color: "#ff2e9a"}
+  - {id: 12, name: sign,      isthing: true,  color: "#c8ff00"}
+  - {id: 13, name: sky,       isthing: false, color: "#3d3df5"}
+  - {id: 14, name: sea,       isthing: false, color: "#0ab9e6"}
+  - {id: 15, name: sand,      isthing: false, color: "#e8d28a"}
+  - {id: 16, name: tree,      isthing: false, color: "#24b353"}
+  - {id: 17, name: grass,     isthing: false, color: "#b0bf1a"}
+  - {id: 18, name: rock,      isthing: false, color: "#5f6b7a"}
+  - {id: 19, name: building,  isthing: false, color: "#b25050"}
+  - {id: 20, name: fountain,  isthing: false, color: "#c0a080"}
+  - {id: 21, name: boardwalk, isthing: false, color: "#9f7f5f"}
+  - {id: 22, name: pavement,  isthing: false, color: "#9e9e9e"}
+  - {id: 23, name: road,      isthing: false, color: "#5a5a6e"}
+  - {id: 24, name: wall,      isthing: false, color: "#c4b7a6"}
+
+# ---------------------------------------------------------------------------
+# prelabel — things
+# Mask R-CNN R-50-FPN (ONNX model zoo, COCO-80 classes). Only the COCO classes
+# listed here are kept; everything else is dropped. Ontology classes with no
+# COCO equivalent (buoy, bollard, shoe) are added by hand in CVAT.
+# ---------------------------------------------------------------------------
+things:
+  model: weights/MaskRCNN-12.onnx
+  score_threshold: 0.5
+  mask_threshold: 0.5
+  min_area: 64                # px, at full resolution
+  coco_to_ontology:
+    person: person
+    backpack: backpack
+    handbag: bag
+    suitcase: bag
+    bird: bird
+    dog: dog
+    cell phone: phone
+    car: car
+    truck: truck
+    bus: truck
+    stop sign: sign
+
+# ---------------------------------------------------------------------------
+# prelabel — stuff
+# MobileSAM automatic mask generation. It returns class-agnostic regions; the
+# class of each region is assigned afterwards, in regions.yaml.
+# ---------------------------------------------------------------------------
+stuff:
+  checkpoint: weights/mobile_sam.pt
+  model_type: vit_t
+  max_side: 1024              # the image is downscaled to this before SAM
+  points_per_side: 32
+  pred_iou_thresh: 0.86
+  stability_score_thresh: 0.90
+  min_region_area: 800        # px, at full resolution
+  max_thing_overlap: 0.5      # drop a region if more than this fraction lies on a detected thing
+
+# ---------------------------------------------------------------------------
+# refine — automatic clean-up before the CVAT round trip
+# ---------------------------------------------------------------------------
+refine:
+  fill_holes_below: 400       # px, holes smaller than this are filled
+  drop_islands_below: 400     # px, disconnected fragments smaller than this are dropped
+  polygon_epsilon: 1.5        # px, Douglas-Peucker tolerance for the exported polygons
+  rle_if_holes_above: 2000    # px, masks with a hole this big are exported as RLE (CVAT "mask")
+
+# ---------------------------------------------------------------------------
+# resolve — turn possibly overlapping annotations into one panoptic map
+# ---------------------------------------------------------------------------
+resolve:
+  # Paint order, FRONT to BACK. Where two annotations overlap, the one whose
+  # class comes first wins. Things always win over stuff. Within one class,
+  # the smaller annotation wins (a child in front of an adult, a far person
+  # in front of a near one's silhouette).
+  priority:
+    - bollard      # posts are drawn over people standing behind them
+    - sign
+    - bird
+    - buoy
+    - phone
+    - shoe
+    - backpack
+    - bag
+    - dog
+    - person
+    - car
+    - truck
+    - fountain
+    - wall
+    - tree
+    - building
+    - road
+    - boardwalk
+    - pavement
+    - rock
+    - grass
+    - sand
+    - sea
+    - sky
+  # CVAT's COCO export merges every shape of one label drawn as a single
+  # annotation into one multi-polygon; for these classes each connected
+  # component becomes its own instance again.
+  split_classes: [bag]
+  split_min_area: 50
+  # One segment per stuff class (COCO panoptic convention).
+  merge_stuff: true
+  # Pixels covered by no annotation: "nearest" gives them to the closest
+  # segment (no void left), "void" leaves them as id 0.
+  fill: nearest
+
+# ---------------------------------------------------------------------------
+# export-web — the overlays consumed by the portfolio carousel
+# ---------------------------------------------------------------------------
+web:
+  long_side: 1024
+  pan_alpha: 168              # every segment in its color
+  inst_alpha: 185             # things in their instance color...
+  dim_color: "#080a12"        # ...stuff dimmed to this color
+  dim_alpha: 150
+  edge_color: "#ffffff"
+  edge_alpha: 235
+  edge_width: 1               # px, at the export resolution
+  # k-th instance of a class is drawn in base_color * factor[k % len]
+  instance_shades: [1.0, 1.35, 0.7, 1.6, 0.5, 1.85]
+  box_exclude: [bollard]      # too many, too thin: they clutter the INSTANCES view
+  box_min_area: 200           # px at full resolution; tinier instances get no box
