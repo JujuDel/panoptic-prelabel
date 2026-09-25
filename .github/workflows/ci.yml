@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.11"
+            deps: pinned   # the exact versions in constraints.txt
+          - python-version: "3.12"
+            deps: latest   # whatever pyproject's ranges resolve to today
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      # Core + dev only: the tests exercise resolve, refine, compare, the formats,
+      # the detector's pre/post-processing (with a fake ONNX session) and the example
+      # scenes, on CPU, without torch, onnxruntime or model weights.
+      - name: install
+        run: |
+          if [ "${{ matrix.deps }}" = pinned ]; then C="-c constraints.txt"; fi
+          pip install $C -e ".[dev]"
+      - name: lint and types (pinned tools only, so a new ruff/mypy release cannot break CI)
+        if: matrix.deps == 'pinned'
+        run: |
+          ruff check .
+          ruff format --check .
+          mypy
+      - run: pytest -q
+      - name: end to end without models (replays examples/street/prelabel, then refine, resolve, export-web)
+        run: panoptic-prelabel run examples/street --out out/street --skip-prelabel
+      - name: the numbers in docs/results.md (and the README) are reproducible
+        if: matrix.deps == 'pinned'
+        run: python scripts/evaluate.py | diff docs/results.md -
+
+  wheel:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: build and install the wheel, then use it outside the source tree
+        run: |
+          pip install build
+          python -m build --wheel
+          pip install dist/*.whl
+          cd /tmp && panoptic-prelabel config | grep -q "priority:"

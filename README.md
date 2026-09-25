@@ -1,0 +1,190 @@
+# panoptic-prelabel
+
+**Semi-automatic panoptic annotation. Mask R-CNN pre-labels the countable objects ("things"), MobileSAM cuts the rest into class-agnostic regions that get named, a person corrects the result in CVAT, and a deterministic `resolve` step turns the overlapping corrected shapes into one COCO-panoptic map with instance boxes.**
+
+![Input photo, automatic pre-labels, and final panoptic map with instance boxes](docs/wharf.jpg)
+
+*The `wharf` example. Left: the photo. Middle: the automatic pre-annotation, before any human correction. Right: the final map after correction in CVAT and `resolve`, with the instance boxes the website draws.*
+
+This produced the masks of the hero carousel on [juliendelclos.com](https://juliendelclos.com). The four scenes in `examples/` are the four scenes shown there. The quality numbers below come from `python scripts/evaluate.py`, which replays everything from committed files, no model needed. CI regenerates its output ([`docs/results.md`](docs/results.md)) and fails if it changes. The timings were measured by hand (section 5).
+
+---
+
+## 1. Pipeline
+
+```mermaid
+flowchart LR
+    img[photo] --> mrcnn["Mask R-CNN R-50-FPN<br/>(ONNX, CPU)<br/>things + instance masks"]
+    img --> sam["MobileSAM<br/>automatic masks<br/>class-agnostic regions"]
+    mrcnn --> pre([prelabel])
+    sam --> pre
+    pre --> lab["regions.yaml<br/>name each numbered region"]
+    lab --> refine([refine])
+    refine --> cvat["coco_for_cvat.zip<br/>→ manual correction in CVAT<br/>→ COCO 1.0 export"]
+    cvat --> resolve([resolve])
+    resolve --> pan["panoptic.png + panoptic.json<br/>(COCO panoptic)"]
+    pan --> web([export-web])
+    web --> site["NAME_pan.png · NAME_inst.png<br/>NAME_boxes.json<br/>→ website carousel"]
+```
+
+| Stage | Command | Input → output |
+|---|---|---|
+| prelabel | `panoptic-prelabel prelabel IMAGE --out WORK` | photo → `things.json` (detector instances), `regions.png` / `regions.jpg` (numbered regions), `regions.yaml` (template) |
+| *naming* | edit `WORK/regions.yaml` | one class name (or `ignore`) per numbered region |
+| refine | `panoptic-prelabel refine WORK` | → `coco_for_cvat.zip`, a clean pre-annotation to import into CVAT |
+| *correction* | CVAT | import "COCO 1.0", fix, export "COCO 1.0" → `cvat_corrected.zip` |
+| resolve | `panoptic-prelabel resolve cvat_corrected.zip --out DIR` | → `panoptic.png` + `panoptic.json` |
+| export-web | `panoptic-prelabel export-web DIR/panoptic.json --image IMAGE --name NAME --out WEB` | → the overlays and boxes the website loads |
+| evaluate | `panoptic-prelabel compare REF PRED [REF PRED ...]` | PQ (things / stuff), mIoU, pixel accuracy, pooled over image pairs |
+| all of it | `panoptic-prelabel run SCENE_DIR --out OUT` | a scene directory, as in `examples/` |
+
+Every sub-command accepts `--config my.yaml`. It overrides any subset of [`default.yaml`](src/panoptic_prelabel/configs/default.yaml). Unknown keys, wrong types (including inside lists), unknown class names and invalid values are all errors at load time.
+
+### The two manual steps, as they are really done
+
+1. **Naming the regions.** MobileSAM finds regions but does not say what they are. `prelabel` writes `regions.jpg`, the photo with every region colored and numbered, and a `regions.yaml` template. Someone looks at the picture and writes a class for each number. It can be a stuff class (`sky`, `sea`, …), a thing class the detector does not know (`bollard`, `buoy`), or `ignore`, which creates no annotation for the region: it stays a hole to draw in CVAT. Entries are matched by an interior point `(x, y)` rather than by number, so they survive a re-run. **In `examples/`, the regions were named by Claude (Anthropic's model) from `regions.jpg`, not by a person.** That was measured against the human correction (section 5).
+2. **Correcting in CVAT.**
+   - Import `coco_for_cvat.zip` into a CVAT task as *COCO 1.0*. The project labels are the 24 classes of the config; `panoptic-prelabel config` prints them with their colors.
+   - Fix the polygons, draw what is missing, delete what is wrong.
+   - Export the task again as *COCO 1.0*. That export is what `resolve` reads.
+
+   The `examples/*/cvat_corrected.zip` are those exports, done by hand by the author of the photos. Only the image file name inside them was changed.
+
+## 2. Why this design
+
+**Why not a single panoptic model? The honest answer is an environment constraint.** Every stuff class used here exists in COCO-panoptic, so Mask2Former or OneFormer would output a panoptic map in one pass. The first version of this pipeline was built in a sandbox where HuggingFace and the usual model hubs were blocked. The two reachable options were the ONNX model zoo (served through GitHub LFS) and MobileSAM (weights committed in its repository). The detector + regions split is what those two models allow. It is not what I would pick with an unrestricted choice, and comparing it against Mask2Former is the first item in section 6.
+
+The split still has two properties a closed-vocabulary panoptic model lacks:
+- the regions are class-agnostic, so classes outside COCO (bollard, buoy) come from naming, not from retraining;
+- the region naming is a separate, inspectable step that can be done by a person or a model, and measured.
+
+**Mask R-CNN for things.** Countable objects need one mask per instance. `MaskRCNN-12.onnx` runs with `onnxruntime` on CPU, and `things.coco_to_ontology` keeps only the COCO classes that match the ontology (person, backpack, handbag/suitcase → bag, bird, dog, cell phone → phone, car, truck/bus → truck, stop sign → sign).
+
+**MobileSAM for stuff.** SAM's automatic mode segments everything, whatever its class. MobileSAM replaces SAM's ViT-H image encoder with a small TinyViT, which makes that mode usable on CPU (timings in section 5). It still needs PyTorch.
+
+**Handling overlaps between things and stuff, before correction.** `prelabel` flattens the overlapping SAM masks into one partition:
+- masks are painted from the largest to the smallest, so a rock inside the sea survives;
+- a mask is dropped when more than half of it lies on a detected thing;
+- regions below `stuff.min_region_area` are dropped.
+
+`refine` then:
+- merges named stuff regions per class;
+- turns a region named with a thing class into an instance, or merges it into the detected instance of the same class it touches (a wrist watch SAM cut out of a person);
+- cleans small holes and islands;
+- gives the thin gaps between regions to the nearest stuff region, while ignored regions stay holes.
+
+**Priority rules in `resolve`.** Corrected CVAT annotations overlap freely: a person polygon on top of the pavement polygon, a backpack on top of the person. `resolve` makes the result deterministic and independent of the order of the annotations in the file:
+
+1. Things always win over stuff.
+2. Between classes, the one listed first in `resolve.priority` wins. The order is bollard, sign, bird, buoy, phone, shoe, backpack, bag, dog, person, car, truck, then the stuff classes from fountain down to sky. Carried items sit in front of the person carrying them. Posts sit in front of the people standing behind them.
+3. Within a class, the smaller annotation wins. An exact tie is broken by geometry (top-most, then left-most pixel), never by file order.
+4. Classes in `resolve.split_classes` (`bag`) are split into connected components, because CVAT's COCO export merges every shape of one label drawn as one annotation. The reverse case, one object cut into several shapes by an occluder, is handled by an optional `scene.yaml` that groups annotation ids back into one instance (`examples/wharf/scene.yaml`: a backpack cut by an arm).
+5. Stuff is one segment per class, following the COCO panoptic convention.
+6. Pixels covered by no annotation go to the nearest segment (`resolve.fill: nearest`), so thin gaps between hand-drawn polygons do not show as holes.
+
+Every rule has a synthetic test in `tests/test_resolve.py`, including one that swaps the file order.
+
+## 3. Quickstart
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # CPU-only PyTorch (see below)
+pip install -e ".[models]"                                                         # Python ≥ 3.11
+panoptic-prelabel download-weights && panoptic-prelabel run examples/wharf --out out/wharf
+```
+
+The first line keeps pip from installing the CUDA build of PyTorch, which on Linux pulls several GB of NVIDIA libraries this CPU pipeline does not use. It is PyTorch's documented CPU index, but this repository's own runs used the default PyPI build (`constraints.txt` lists the exact versions). `download-weights` fetches about 220 MB into `./weights` and checks the SHA-256 of each file.
+
+`out/wharf/work/` holds the automatic pre-annotation, `out/wharf/panoptic/` the map resolved from the committed CVAT export, and `out/wharf/web/` the files the website uses.
+
+For a new photo, put it alone in a folder and run the same command.
+1. The run stops after `prelabel` and asks for `regions.yaml`. Fill in `OUT/work/regions.yaml` and copy it next to the photo.
+2. Run again with `--skip-prelabel`: `refine` is re-run on the saved model outputs, so no inference is repeated.
+3. Without a `cvat_corrected.zip` in the folder, the final map is resolved from the automatic pre-annotation.
+
+**Without the models.** `pip install -e .` needs no model and no PyTorch; it is enough for `resolve`, `export-web` and `compare`, and `pip install -e ".[dev]"` adds what the tests need. `panoptic-prelabel run examples/wharf --out out/wharf --skip-prelabel` then runs the whole pipeline in a few seconds: it replays the model outputs recorded in `examples/wharf/prelabel/`.
+
+## 4. Output format
+
+**`panoptic.png` + `panoptic.json`: COCO panoptic, one image.**
+- The PNG stores segment ids as `id = R + 256·G + 256²·B`, with 0 meaning void. With `fill: nearest` there is none.
+- `segments_info` gives `id`, `category_id`, `area` and `bbox` (`[x, y, w, h]`, full resolution) for the *visible* part of every segment, after overlaps are resolved.
+- `categories` carries `isthing` and the RGB `color`.
+- Segment ids follow paint order: things first, front to back.
+
+**`export-web`: what the website consumes.**
+
+| File | Content |
+|---|---|
+| `NAME_raw.jpg` | the photo, upright. EXIF, GPS, XMP, maker notes, comments and any trailing embedded image are removed losslessly, and the ICC color profile is kept. A photo with an EXIF rotation is re-encoded upright instead |
+| `NAME_pan.png` | RGBA overlay, long side 1024 px: every segment in its color (alpha 168), white boundaries (alpha 235) |
+| `NAME_inst.png` | same size: things in their instance color (alpha 185), stuff dimmed to `#080a12` (alpha 150), a white outline around things |
+| `NAME_boxes.json` | `{"name", "w", "h", "boxes": [{"cls", "color", "x", "y", "w", "h"}]}`, boxes in **percent** of the image |
+| `NAME_scene.js` | the same data as an entry for the site's `SCENES` array |
+
+The k-th instance of a class is drawn in its class color multiplied by `web.instance_shades[k]`. Bollards get no box because there are too many and they are too thin; neither do instances under `web.box_min_area` pixels.
+
+Input photos are always used as displayed. The EXIF orientation is applied on load. When a photo has an EXIF rotation, `prelabel` writes the upright copy to upload to CVAT (`WORK/upright.jpg`), so the masks and CVAT see the same pixels.
+
+## 5. Measurements
+
+The reference is the human-corrected map: `resolve` run on `examples/*/cvat_corrected.zip`. That correction was made by one person, starting from the pre-labels of an earlier version, whose regions were also named by Claude. **These are agreement numbers on 4 photos, not accuracy against independent ground truth.** Metrics follow panopticapi: a segment matches at IoU > 0.5, statistics are pooled over the images, then averaged over classes. The full per-class tables are in [`docs/results.md`](docs/results.md).
+
+**How far the automatic pre-annotation is from the final map.** Today's pre-annotation, replayed from the recorded model outputs in `examples/*/prelabel/`, compared with the final corrected map. The correction itself was made on the July pre-labels, so this approximates the correction effort; it does not measure it:
+
+| | PQ | PQ things | PQ stuff | mIoU | pixel accuracy |
+|---|---|---|---|---|---|
+| 4 photos, pooled | 45.0 | 36.1 | 54.8 | 55.7 | 90.17 % |
+
+Nine pixels in ten of the pre-annotation have the class of the final map, but only 18 of its 34 thing instances are matched (and 18 of the 36 predicted ones are wrong or extra). Bollards, bags and trucks are missed or merged, and the detector folds the backpack into the person in `bay`. The CVAT step exists for those instances.
+
+**How good the region naming was.** Each named region was compared with the class the correction gives most of its pixels. 129 of 187 regions (69 %) got the same class, covering 95.1 % of the named pixels. The errors are concentrated in small, ambiguous regions. The largest is vegetation on a cliff named `tree` where the correction says `rock` (8 regions, 63 k px). Next come `wall` where the correction says `pavement` (2 regions, 20 k px), then `tree` where it says `grass` (3 regions, 15 k px). Naming by a model is fast and right on the big regions, but the small ones still need a person.
+
+**Agreement with the first version.** Re-resolving the same CVAT exports gives PQ 98.4 and 99.93 % pixel accuracy against the July 2026 version, which is what the website shows. The residual differences come from three things:
+- one-pixel polygon rasterisation;
+- gap filling;
+- one `street` pavement segment, now merged into its class.
+
+**Time.** Measured on a cloud sandbox: Intel Xeon @ 2.10 GHz, 2 vCPU, 7 GB RAM, Python 3.11, onnxruntime 1.25.0, torch 2.14.0 running on CPU.
+- `panoptic-prelabel prelabel examples/street/image.jpg --out runs/street` reports `[prelabel] 177.5 s` for a 1204×1600 photo. Almost all of it is MobileSAM's automatic mode (32×32 point grid): Mask R-CNN alone takes 1.7 to 2.8 s.
+- `panoptic-prelabel run examples/bay --out out/bay` took 162 s end to end, and two runs gave byte-identical regions.
+- `resolve` takes about 1 s per photo.
+- The time spent in CVAT was not measured.
+
+## 6. Limits and next steps
+
+**Limits.**
+- Four photos and one annotator. There is no GPU path and no batching: the code handles one image at a time.
+- The CVAT corrections in `examples/` were made from the July pre-labels of an earlier, unpublished version of this code, which this repository re-implements. The corrected exports are therefore not edits of today's `coco_for_cvat.zip`.
+- Mask R-CNN outputs 28×28 masks, so boundaries are coarse. It knows only COCO's classes: bollard, buoy and shoe have no equivalent, and `sign` comes only from stop signs.
+- `MaskRCNN-12.onnx` clips every box to x ≤ 1279, y ≤ 959, limits frozen in the exported graph and not documented in the model card. A portrait photo resized to the recommended short side of 800 px lost everything below y = 960, including a standing person's legs and most of their score. The input is therefore capped at 1280 × 960, so portrait photos run at lower resolution. See `things.py` and `tests/test_things.py`.
+- CVAT polygons cannot hold holes. Masks with large holes are exported as RLE ("mask" shapes in CVAT).
+
+**What I would do next, in order.**
+1. **Mask2Former / OneFormer baseline** (COCO-panoptic weights) on the same four photos and on a few dozen COCO-panoptic validation images, with PQ things/stuff for both designs. The goal is to keep the detector + regions split only where the numbers justify it.
+2. **GPU and deployment path.**
+   - Build a TensorRT engine for the detector.
+   - Run MobileSAM's image encoder once, then send batched prompts to the decoder in ONNX, seeded from the detector's boxes instead of a blind 32×32 grid.
+   - Produce a latency table for CPU and GPU.
+3. **Measure annotation time** in CVAT against labelling from scratch. That is the metric a pre-annotation tool exists for.
+4. **Automatic region naming** (CLIP-style, run on each region), scored with the same script as the model-written names above.
+
+## 7. Engineering
+
+- Python ≥ 3.11 package with a CLI entry point; `pip install -e .` needs no deep-learning framework.
+- Config in YAML, validated when loaded.
+- Tests. Every `resolve` rule has a synthetic case, and so do the config validation and the EXIF-rotation path. An opt-in test (`RUN_MODELS=1 pytest tests/test_models.py`, about 3 min on CPU) runs the real models and checks they still reproduce the recorded outputs in `examples/*/prelabel/`. `compare` is checked against hand-computed TP/FP/FN. The detector's pre/post-processing is tested with a fake ONNX session, so no weights are needed. The example scenes serve as regression cases.
+- `ruff` and `mypy` run in CI.
+- CI runs lint, types and tests on the exact versions in `constraints.txt`, and the tests again on the latest versions allowed by `pyproject.toml`. It builds and installs the wheel, runs the pipeline end to end on the recorded model outputs, and regenerates `docs/results.md`.
+
+## 8. Licenses and credits
+
+This repository is under the **Apache License 2.0** (`LICENSE`). It contains no third-party code or weights: `download-weights` fetches them from pinned upstream commits and checks their SHA-256. Details, with the files each license was read from, are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+- **Mask R-CNN R-50-FPN**, `MaskRCNN-12.onnx`, from the [ONNX model zoo](https://github.com/onnx/models/tree/main/validated/vision/object_detection_segmentation/mask-rcnn). Model card: MIT. Converted from [facebookresearch/maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark) (MIT). He et al., *Mask R-CNN*, ICCV 2017.
+- **MobileSAM**, from [ChaoningZhang/MobileSAM](https://github.com/ChaoningZhang/MobileSAM) (Apache-2.0), at commit `f706ad9`. Zhang et al., *Faster Segment Anything: Towards Lightweight SAM for Mobile Applications*, 2023. Built on Meta's [Segment Anything](https://github.com/facebookresearch/segment-anything) (Apache-2.0) and Microsoft's TinyViT (MIT).
+- **Libraries**: onnxruntime (MIT), PyTorch and torchvision (BSD-3-Clause), timm (Apache-2.0), OpenCV (Apache-2.0), NumPy and SciPy (BSD-3-Clause), Pillow (MIT-CMU), PyYAML (MIT). Annotation tool: [CVAT](https://github.com/cvat-ai/cvat) (MIT).
+- **Photos**: the example photos (`examples/*/image.jpg`) are **not** covered by the Apache-2.0 license. All rights reserved; they are published only to demonstrate this pipeline.
+
+## 9. Author
+
+Julien Delclos, [juliendelclos.com](https://juliendelclos.com)
