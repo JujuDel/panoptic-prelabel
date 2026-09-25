@@ -73,3 +73,11 @@ def test_segment_listed_but_absent_from_the_png():
     ref = pan([[1, 1]], {1: "sky"})
     ref.segments.append(Segment(9, "sea", False, 0, [0, 0, 0, 0], []))  # hidden entirely
     assert evaluate([(ref, ref)]).classes["sea"].fn == 1
+
+
+def test_summary_restricted_to_a_class_subset():
+    ref = pan([[1, 2, 2, 2, 2, 1, 3, 3, 1, 1]], {1: "sky", 2: "person", 3: "car"})
+    pred = pan([[1, 1, 2, 2, 2, 2, 1, 1, 3, 3]], {1: "sky", 2: "person", 3: "car"})
+    s = evaluate([(ref, pred)]).summary(only={"person"})
+    assert s["PQ"] == pytest.approx(0.6) and s["PQ_th"] == pytest.approx(0.6)
+    assert s["PQ_st"] == 0.0 and s["mIoU"] == pytest.approx(0.6)

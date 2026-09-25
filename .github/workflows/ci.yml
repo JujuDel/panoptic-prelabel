@@ -32,6 +32,8 @@ jobs:
         run: |
           if [ "${{ matrix.deps }}" = pinned ]; then C="-c constraints.txt"; fi
           pip install $C -e ".[dev]"
+          # the official COCO metric, to check compare.py against it (not on PyPI)
+          pip install "git+https://github.com/cocodataset/panopticapi.git@7bb4655548f98f3fedc07bf37e9040a992b054b0"
       - name: lint and types (pinned tools only, so a new ruff/mypy release cannot break CI)
         if: matrix.deps == 'pinned'
         run: |

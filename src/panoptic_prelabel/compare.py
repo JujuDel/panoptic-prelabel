@@ -4,7 +4,10 @@ The matching follows panopticapi (Kirillov et al., "Panoptic Segmentation",
 CVPR 2019): a reference segment and a predicted segment of the same class
 match when IoU > 0.5, which makes matches unique. Pixels that are void in the
 reference are left out of the union, and a predicted segment lying mostly
-(> 50 %) on reference void is not counted as a false positive.
+(> 50 %) on reference void, or on a reference crowd region of its own class,
+is not counted as a false positive. Crowd regions are never false negatives.
+`tests/test_panopticapi_parity.py` checks the numbers against the official
+implementation.
 
 Statistics are accumulated per class over *all* the image pairs and averaged
 over classes at the end (pooled, as in COCO panoptic), then split into
@@ -99,8 +102,9 @@ class Evaluation:
         area_p = {s.id: s.area for s in pred.segments}
         on_void = {pid: n for (rid, pid), n in inter.items() if rid == 0}
         matched_r, matched_p = set(), set()
+        crowd_r = {s.id for s in ref.segments if s.iscrowd}
         for (rid, pid), n in inter.items():
-            if rid == 0 or pid == 0 or cat_r.get(rid) != cat_p.get(pid):
+            if rid == 0 or pid == 0 or rid in crowd_r or cat_r.get(rid) != cat_p.get(pid):
                 continue
             iou = n / (area_r[rid] + area_p[pid] - n - on_void.get(pid, 0))
             if iou > 0.5:
@@ -109,31 +113,44 @@ class Evaluation:
                 st = self.classes[cat_r[rid]]
                 st.iou += iou
                 st.tp += 1
+        crowd_of_class: dict[str, int] = {}
         for s in ref.segments:
-            if s.id not in matched_r:
-                self.classes[s.category].fn += 1
+            if s.id in matched_r:
+                continue
+            if s.iscrowd:
+                crowd_of_class[s.category] = s.id  # as panopticapi: one crowd region per class
+                continue
+            self.classes[s.category].fn += 1
         for s in pred.segments:
-            if s.id not in matched_p and on_void.get(s.id, 0) / max(s.area, 1) <= 0.5:
+            if s.id in matched_p:
+                continue
+            ignored = on_void.get(s.id, 0)
+            if s.category in crowd_of_class:
+                ignored += inter.get((crowd_of_class[s.category], s.id), 0)
+            if ignored / max(s.area, 1) <= 0.5:
                 self.classes[s.category].fp += 1
 
     # ---------------------------------------------------------------- summary
 
-    def _mean(self, attr: str, isthing: bool | None = None) -> float:
+    def _mean(self, attr: str, isthing: bool | None = None, only: set[str] | None = None) -> float:
         vals = [
             getattr(c, attr)
-            for c in self.classes.values()
-            if (isthing is None or c.isthing == isthing) and (c.tp + c.fp + c.fn) > 0
+            for name, c in self.classes.items()
+            if (isthing is None or c.isthing == isthing) and (only is None or name in only) and (c.tp + c.fp + c.fn) > 0
         ]
         return float(np.mean(vals)) if vals else 0.0
 
-    def summary(self) -> dict[str, float]:
-        ious = [c.inter_px / c.union_px for c in self.classes.values() if c.union_px]
+    def summary(self, only: set[str] | None = None) -> dict[str, float]:
+        """Class-averaged metrics; `only` restricts the averages to these classes
+        (e.g. the ones both of two compared models can predict). Pixel accuracy
+        always covers every class."""
+        ious = [c.inter_px / c.union_px for n, c in self.classes.items() if c.union_px and (only is None or n in only)]
         return {
-            "PQ": self._mean("pq"),
-            "SQ": self._mean("sq"),
-            "RQ": self._mean("rq"),
-            "PQ_th": self._mean("pq", True),
-            "PQ_st": self._mean("pq", False),
+            "PQ": self._mean("pq", only=only),
+            "SQ": self._mean("sq", only=only),
+            "RQ": self._mean("rq", only=only),
+            "PQ_th": self._mean("pq", True, only),
+            "PQ_st": self._mean("pq", False, only),
             "mIoU": float(np.mean(ious)) if ious else 0.0,
             "pixel_acc": self.pixels_same / self.pixels_total if self.pixels_total else 0.0,
         }

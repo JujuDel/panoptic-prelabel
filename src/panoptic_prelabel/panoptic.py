@@ -20,6 +20,7 @@ class Segment:
     area: int
     bbox: list[int]  # [x, y, w, h], full-resolution pixels
     source_ids: list[int]
+    iscrowd: bool = False  # COCO crowd region: ignored by the evaluation, never produced by resolve
 
 
 @dataclass
@@ -57,7 +58,7 @@ def panoptic_json(pan: Panoptic, cfg: Config, png_name: str) -> dict:
                     {
                         "id": s.id,
                         "category_id": cfg.by_name[s.category].id,
-                        "iscrowd": 0,
+                        "iscrowd": int(s.iscrowd),
                         "area": s.area,
                         "bbox": s.bbox,
                     }
@@ -81,14 +82,8 @@ def write_panoptic(pan: Panoptic, cfg: Config, out_dir: str | Path, stem: str = 
     return png, js
 
 
-def read_panoptic(json_path: str | Path) -> Panoptic:
-    """Read a COCO panoptic JSON (single image) and its PNG next to it."""
-    json_path = Path(json_path)
-    data = json.loads(json_path.read_text("utf-8"))
-    img = data["images"][0]
-    ann = data["annotations"][0]
-    cats = {c["id"]: c for c in data["categories"]}
-    id_map = rgb2id(np.asarray(Image.open(json_path.parent / ann["file_name"]).convert("RGB")))
+def _from_annotation(ann: dict, img: dict, cats: dict[int, dict], png_dir: Path) -> Panoptic:
+    id_map = rgb2id(np.asarray(Image.open(png_dir / ann["file_name"]).convert("RGB")))
     segments = [
         Segment(
             id=s["id"],
@@ -97,7 +92,27 @@ def read_panoptic(json_path: str | Path) -> Panoptic:
             area=int(s["area"]),
             bbox=[int(v) for v in s["bbox"]],
             source_ids=[],
+            iscrowd=bool(s.get("iscrowd", 0)),
         )
         for s in ann["segments_info"]
     ]
     return Panoptic(img["file_name"], int(img["width"]), int(img["height"]), id_map, segments)
+
+
+def read_panoptic(json_path: str | Path) -> Panoptic:
+    """Read a COCO panoptic JSON (single image) and its PNG next to it."""
+    json_path = Path(json_path)
+    data = json.loads(json_path.read_text("utf-8"))
+    cats = {c["id"]: c for c in data["categories"]}
+    return _from_annotation(data["annotations"][0], data["images"][0], cats, json_path.parent)
+
+
+def read_panoptic_dataset(json_path: str | Path, png_dir: str | Path) -> dict[int, Panoptic]:
+    """Read a multi-image COCO panoptic file (e.g. panoptic_val2017.json), keyed by image id."""
+    data = json.loads(Path(json_path).read_text("utf-8"))
+    cats = {c["id"]: c for c in data["categories"]}
+    images = {img["id"]: img for img in data["images"]}
+    return {
+        ann["image_id"]: _from_annotation(ann, images[ann["image_id"]], cats, Path(png_dir))
+        for ann in data["annotations"]
+    }
