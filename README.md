@@ -194,3 +194,5 @@ This repository is under the **Apache License 2.0** (`LICENSE`). It contains no 
 ## 9. Author
 
 Julien Delclos, [juliendelclos.com](https://juliendelclos.com)
+
+The code was written with [Claude Code](https://claude.com/claude-code), Anthropic's coding agent; the commits carry its co-author line. The photos and the CVAT corrections of the examples are mine.
