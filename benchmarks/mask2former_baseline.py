@@ -92,7 +92,7 @@ PANOPTIC_CATEGORIES_URL = (
 
 
 def coco_categories() -> list[dict]:
-    with urllib.request.urlopen(PANOPTIC_CATEGORIES_URL, timeout=60) as r:  # noqa: S310 (fixed https URL)
+    with urllib.request.urlopen(PANOPTIC_CATEGORIES_URL, timeout=60) as r:
         return json.loads(r.read())
 
 
