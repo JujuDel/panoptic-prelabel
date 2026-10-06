@@ -26,7 +26,8 @@ import sys
 ORT = {"12": "onnxruntime-gpu==1.25.0", "13": "onnxruntime-gpu==1.30.0"}
 # PyPI only has a stub for these that fetches the real wheels from NVIDIA's index
 TRT = {"12": "tensorrt-cu12==10.16.1.11", "13": "tensorrt-cu13==10.16.1.11"}
-COMMON = ["polygraphy==0.53.6", "transformers==5.17.0", "timm==1.0.30"]
+# onnx: onnxruntime's symbolic shape inference, run on the model before TensorRT
+COMMON = ["onnx==1.23.2", "polygraphy==0.53.6", "transformers==5.17.0", "timm==1.0.30"]
 GIT = [
     "mobile_sam @ git+https://github.com/ChaoningZhang/MobileSAM.git@f706ad9c4eb7f219c00d9050e46328518ffb65d2",
     "panopticapi @ git+https://github.com/cocodataset/panopticapi.git@7bb4655548f98f3fedc07bf37e9040a992b054b0",

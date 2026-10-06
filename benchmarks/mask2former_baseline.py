@@ -35,6 +35,7 @@ from common import (
     automatic_map,
     corrected_map,
     environment,
+    gpu_label,
     pct,
     results_dir,
     save,
@@ -303,7 +304,7 @@ def report(payload: dict, table: list[str], details: list[str], images: dict, de
             "Reference: the human-corrected maps. 'Common classes' = the ontology classes a COCO-panoptic "
             "model can predict (bollard, buoy, shoe, fountain and boardwalk excluded).",
             "",
-            f"Device: {device} ({', '.join(env.get('gpus') or [env['cpu']])})",
+            f"Device: {device} on {gpu_label(env) if env.get('gpus') else env['cpu']}",
             "",
             *table,
             "",

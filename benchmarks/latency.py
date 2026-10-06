@@ -31,7 +31,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import ROOT, environment, results_dir, save, scenes, timed
+from common import ROOT, environment, gpu_label, results_dir, save, scenes, timed
 
 from panoptic_prelabel.config import Config
 from panoptic_prelabel.masks import rle_decode
@@ -50,7 +50,10 @@ def load_tensorrt_libs() -> str:
     libdir = Path(tensorrt_libs.__file__).parent
     loaded = []
     for pattern in ("libnvinfer.so.*", "libnvinfer_plugin.so.*", "libnvonnxparser.so.*"):
-        for lib in sorted(libdir.glob(pattern)):
+        libs = sorted(libdir.glob(pattern))
+        if not libs:
+            return f"{pattern} not found in {libdir}"
+        for lib in libs:
             try:
                 ctypes.CDLL(str(lib), mode=ctypes.RTLD_GLOBAL)
                 loaded.append(lib.name)
@@ -59,11 +62,47 @@ def load_tensorrt_libs() -> str:
     return "loaded " + ", ".join(loaded)
 
 
+def peak_rss_gb() -> float | None:
+    """Peak resident memory of this process so far (Linux), to see which step grows it."""
+    try:
+        import resource
+    except ImportError:  # Windows
+        return None
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 2**20, 2)
+
+
+# onnx-tensorrt imports RoiAlign as the ROIAlign_TRT plugin and then looks up
+# libnvinfer_vc_plugin, which the pip wheels do not ship: every subgraph holding a
+# RoiAlign fails to parse, and onnxruntime keeps re-splitting the graph until the
+# machine runs out of memory. Excluded, RoiAlign runs on CUDA.
+TRT_EXCLUDED_OPS = "RoiAlign"
+
+
+def shape_inferred_model(cache_dir: Path) -> Path:
+    """MaskRCNN-12.onnx with the shapes of its intermediate tensors filled in.
+
+    The TensorRT provider rejects the original ("TensorRT input: ... has no shape
+    specified"); its documented fix is onnxruntime's symbolic shape inference. Only
+    shape annotations are added: the computation is the same.
+    """
+    out = cache_dir / "MaskRCNN-12.shapes.onnx"
+    if not out.exists():
+        import onnx
+        from onnxruntime.tools.symbolic_shape_infer import SymbolicShapeInference
+
+        model = SymbolicShapeInference.infer_shapes(onnx.load(str(WEIGHTS / "MaskRCNN-12.onnx")), auto_merge=True)
+        tmp = out.with_suffix(".tmp")
+        onnx.save(model, str(tmp))
+        tmp.replace(out)
+    return out
+
+
 def provider_configs(cache_dir: Path) -> dict[str, list]:
     trt = {
         "trt_engine_cache_enable": True,
         "trt_engine_cache_path": str(cache_dir),
         "trt_max_workspace_size": 4 << 30,
+        "trt_op_types_to_exclude": TRT_EXCLUDED_OPS,
     }
     return {
         "cpu": ["CPUExecutionProvider"],
@@ -129,7 +168,7 @@ def _error_row(model: str, backend: str, e: BaseException, **extra) -> dict:
     return {"model": model, "backend": backend, **extra, "error": msg}
 
 
-def bench_detector(cfg: Config, images: dict[str, np.ndarray], names: list[str], args) -> list[dict]:
+def init_onnxruntime() -> None:
     import onnxruntime as ort
 
     if hasattr(ort, "preload_dlls"):  # onnxruntime >= 1.21: CUDA / cuDNN from the nvidia pip packages
@@ -137,62 +176,79 @@ def bench_detector(cfg: Config, images: dict[str, np.ndarray], names: list[str],
             ort.preload_dlls()
         except Exception as e:
             print(f"note: preload_dlls failed: {e}")
+
+
+def bench_detector(cfg: Config, images: dict[str, np.ndarray], name: str, args, reference: dict) -> list[dict]:
+    """One backend; `reference` holds the CPU detections per scene (filled by the "cpu" run).
+
+    One call per backend, so each session is freed before the next one is created.
+    """
+    import onnxruntime as ort
+
     cache = ROOT / ".cache" / "trt"  # engines are large: kept out of the results folder
     cache.mkdir(parents=True, exist_ok=True)
-    configs = provider_configs(cache)
+    providers = provider_configs(cache)[name]
     model = "Mask R-CNN (ONNX)"
-    rows, reference = [], {}
-    for name in names:
-        opts = ort.SessionOptions()
-        opts.log_severity_level = 3
+    opts = ort.SessionOptions()
+    opts.log_severity_level = 3
+    onnx_path = WEIGHTS / "MaskRCNN-12.onnx"
+    if name.startswith("tensorrt"):
         try:
-            session = ort.InferenceSession(
-                str(WEIGHTS / "MaskRCNN-12.onnx"), sess_options=opts, providers=configs[name]
-            )
+            onnx_path = shape_inferred_model(cache)
         except Exception as e:
-            rows.append(_error_row(model, name, e))
+            return [_error_row(model, name, e)]
+    print(f"[{name}] creating the session ...", flush=True)
+    try:
+        session = ort.InferenceSession(str(onnx_path), sess_options=opts, providers=providers)
+    except Exception as e:
+        return [_error_row(model, name, e)]
+    wanted = providers[0] if isinstance(providers[0], str) else providers[0][0]
+    if session.get_providers()[0] != wanted:
+        return [_error_row(model, name, RuntimeError(f"fell back to {session.get_providers()}"))]
+    # TensorRT builds its engine at the first run; if that fails, onnxruntime would
+    # silently continue on CUDA and this row would time CUDA under a TensorRT label
+    session.disable_fallback()
+    det = ThingDetector(cfg, session=session)
+    rows = []
+    for scene, rgb in images.items():
+        if name.startswith("tensorrt") and scene not in args.trt_scenes:
+            continue  # every new input size means a new engine build (minutes each)
+        tensor, _ = preprocess(rgb)
+        feed = {det.input_name: tensor}
+        n_warm = 3 if name != "cpu" else 1
+        n_rep = args.repeat_gpu if name != "cpu" else args.repeat_cpu
+        if name.startswith("tensorrt"):
+            print(f"[{name}] {scene}: building the TensorRT engine (minutes, cached afterwards) ...", flush=True)
+        try:
+            t_net = timed(partial(session.run, None, feed), warmup=n_warm, repeat=n_rep)
+            t_net.pop("last")
+            t_all = timed(partial(det, rgb), warmup=1, repeat=max(1, n_rep // 2))
+            dets = t_all.pop("last")
+        except Exception as e:
+            rows.append(_error_row(model, name, e, scene=scene))
             continue
-        wanted = configs[name][0] if isinstance(configs[name][0], str) else configs[name][0][0]
-        if session.get_providers()[0] != wanted:
-            rows.append(_error_row(model, name, RuntimeError(f"fell back to {session.get_providers()}")))
-            continue
-        # TensorRT builds its engine at the first run; if that fails, onnxruntime would
-        # silently continue on CUDA and this row would time CUDA under a TensorRT label
-        session.disable_fallback()
-        det = ThingDetector(cfg, session=session)
-        for scene, rgb in images.items():
-            if name.startswith("tensorrt") and scene not in args.trt_scenes:
-                continue  # every new input size means a new engine build (minutes each)
-            tensor, _ = preprocess(rgb)
-            feed = {det.input_name: tensor}
-            n_warm = 3 if name != "cpu" else 1
-            n_rep = args.repeat_gpu if name != "cpu" else args.repeat_cpu
-            if name.startswith("tensorrt"):
-                print(f"[{name}] {scene}: building the TensorRT engine (minutes, cached afterwards) ...", flush=True)
-            try:
-                t_net = timed(partial(session.run, None, feed), warmup=n_warm, repeat=n_rep)
-                t_net.pop("last")
-                t_all = timed(partial(det, rgb), warmup=1, repeat=max(1, n_rep // 2))
-                dets = t_all.pop("last")
-            except Exception as e:
-                rows.append(_error_row(model, name, e, scene=scene))
-                continue
-            if name == "cpu":
-                reference[scene] = dets
-            row = {
-                "model": model,
-                "backend": name,
-                "providers": session.get_providers(),  # after the runs: what really ran
-                "scene": scene,
-                "input": list(tensor.shape),
-                "network": t_net,
-                "with_pre_post": t_all,
-                "detections": len(dets),
-            }
-            if scene in reference and name != "cpu":
-                row["vs_cpu"] = match_detections(reference[scene], dets)
-            rows.append(row)
-            print(f"[{name}] {scene}: network {t_net['median_ms']} ms, total {t_all['median_ms']} ms")
+        if name == "cpu":
+            reference[scene] = dets
+        row = {
+            "model": model,
+            "backend": name,
+            "providers": session.get_providers(),  # after the runs: what really ran
+            "onnx": onnx_path.name,
+            "scene": scene,
+            "input": list(tensor.shape),
+            "network": t_net,
+            "with_pre_post": t_all,
+            "detections": len(dets),
+            "peak_rss_gb": peak_rss_gb(),
+        }
+        if scene in reference and name != "cpu":
+            row["vs_cpu"] = match_detections(reference[scene], dets)
+        rows.append(row)
+        print(
+            f"[{name}] {scene}: network {t_net['median_ms']} ms, total {t_all['median_ms']} ms, "
+            f"peak RSS {row['peak_rss_gb']} GB",
+            flush=True,
+        )
     return rows
 
 
@@ -272,7 +328,7 @@ def markdown(env: dict, det_rows: list[dict], sam_rows: list[dict], cap: dict | 
     lines = [
         "# Latency",
         "",
-        f"GPU: {', '.join(env.get('gpus') or ['none'])}  ",
+        f"GPU: {gpu_label(env)}  ",
         f"CPU: {env['cpu']} ({env['cpu_count']} threads)",
         "",
         "## Mask R-CNN (ONNX), per image",
@@ -299,6 +355,14 @@ def markdown(env: dict, det_rows: list[dict], sam_rows: list[dict], cap: dict | 
             f"| {r['network']['median_ms']} / {r['network']['p90_ms']} ms | {r['with_pre_post']['median_ms']} ms "
             f"| {agree} |"
         )
+    if any(r["backend"].startswith("tensorrt") for r in det_rows):
+        lines += [
+            "",
+            "TensorRT rows: the model after onnxruntime's symbolic shape inference (same computation, "
+            f"shapes annotated). {TRT_EXCLUDED_OPS} excluded (its TensorRT plugin needs libnvinfer_vc_plugin, "
+            "which the pip wheels do not ship); it and the nodes TensorRT's parser rejects (the UINT8 casts and "
+            "the nodes reading them, one NonMaxSuppression) run on CUDA.",
+        ]
     lines += [
         "",
         "## MobileSAM automatic masks, per image",
@@ -320,7 +384,17 @@ def markdown(env: dict, det_rows: list[dict], sam_rows: list[dict], cap: dict | 
         )
     if cap is not None:
         tail = cap.get("last_lines") or [cap.get("error", "")]
-        lines += ["", "## TensorRT capability of MaskRCNN-12.onnx (polygraphy)", "", "```", *tail, "```"]
+        start = [i for i, line in enumerate(tail) if "===== Summary =====" in line]
+        lines += [
+            "",
+            "## TensorRT capability of MaskRCNN-12.onnx (polygraphy)",
+            "",
+            "Summary only; the full output is in `trt_capability/stdout.txt`.",
+            "",
+            "```",
+            *(tail[start[-1] :] if start else tail),
+            "```",
+        ]
     return "\n".join(lines)
 
 
@@ -330,6 +404,7 @@ def main() -> None:
     ap.add_argument("--results-root")
     ap.add_argument("--cpu-only", action="store_true")
     ap.add_argument("--skip-sam", action="store_true")
+    ap.add_argument("--skip-tensorrt", action="store_true", help="no TensorRT rows: CPU and CUDA only")
     ap.add_argument("--skip-capability", action="store_true")
     ap.add_argument("--repeat-cpu", type=int, default=5)
     ap.add_argument("--repeat-gpu", type=int, default=30)
@@ -349,17 +424,26 @@ def main() -> None:
     names = args.scenes or [s.name for s in scenes()]
     images = {n: load_rgb(ROOT / "examples" / n / "image.jpg") for n in names}
 
-    backends = ["cpu"] if args.cpu_only else ["cpu", "cuda", "tensorrt_fp32", "tensorrt_fp16"]
     payload: dict = {"environment": env, "detector": [], "sam": [], "trt_capability": None}
 
-    def checkpoint() -> None:  # save after every section: a later crash keeps what was measured
+    def checkpoint() -> None:  # save after every step: a later crash keeps what was measured
         save(out, "latency", payload, markdown(env, payload["detector"], payload["sam"], payload["trt_capability"]))
 
-    payload["detector"] = bench_detector(cfg, images, backends, args)
-    checkpoint()
+    init_onnxruntime()
+    reference: dict = {}
+
+    def detector(backends: list[str]) -> None:
+        for name in backends:
+            payload["detector"] += bench_detector(cfg, images, name, args, reference)
+            checkpoint()
+
+    # TensorRT last: its engine builds are the step most likely to exhaust the memory
+    detector(["cpu"] if args.cpu_only else ["cpu", "cuda"])
     if not args.skip_sam:
         payload["sam"] = bench_sam(cfg, images, args)
         checkpoint()
+    if not (args.cpu_only or args.skip_tensorrt):
+        detector(["tensorrt_fp32", "tensorrt_fp16"])
     if not (args.cpu_only or args.skip_capability):
         payload["trt_capability"] = trt_capability(out)
         checkpoint()

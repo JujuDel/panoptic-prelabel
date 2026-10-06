@@ -167,6 +167,16 @@ def environment() -> dict:
     return env
 
 
+def gpu_label(env: dict) -> str:
+    """The GPUs of `environment()` on one line: "2 x Tesla T4, ..." rather than the same line twice."""
+    gpus = env.get("gpus") or []
+    if not gpus:
+        return "none"
+    if len(gpus) > 1 and len(set(gpus)) == 1:
+        return f"{len(gpus)} x {gpus[0]} (the benchmarks use the first)"
+    return ", ".join(gpus)
+
+
 def _cpu_count() -> int:
     import os
 

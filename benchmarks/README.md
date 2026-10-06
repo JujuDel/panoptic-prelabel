@@ -25,7 +25,7 @@ This packs the committed files only: no weights, nothing private.
 **2. Upload it as a private dataset.**
 - On kaggle.com: *Create* → *New Dataset* → drop `panoptic-prelabel.zip`.
 - Title: `panoptic-prelabel-src`, visibility *Private*, then *Create*.
-- Kaggle unzips it automatically.
+- Kaggle unzips it automatically, including the four nested `examples/*/cvat_corrected.zip`, which become folders. The notebook's first cell zips them back.
 
 **3. Import the notebook.**
 - *Create* → *New Notebook*, then *File* → *Import Notebook*.
@@ -45,7 +45,7 @@ Expected time is about 1 to 1.5 h in total:
 - the COCO annotation download (~820 MB);
 - one CPU run of MobileSAM (a few minutes).
 
-**6. Bring the results back.** Unzip `results_kaggle.zip` into `benchmarks/results/`, so the files end up as `benchmarks/results/kaggle/latency.md` and so on. Tell me when it is there, or commit it. The predictions on the COCO images are git-ignored; the summaries, and the predictions on the 4 example photos, are kept.
+**6. Bring the results back.** Unzip `results_kaggle.zip` into `benchmarks/results/`, so the files end up as `benchmarks/results/kaggle/latency.md` and so on, and commit them apart from any code change. The predictions on the COCO images are git-ignored; the summaries, and the predictions on the 4 example photos, are kept.
 
 ### If something fails
 
@@ -55,7 +55,11 @@ Each benchmark records a failure as an error row instead of crashing: a TensorRT
 |---|---|
 | `no GPU visible to torch` | The accelerator is not set to GPU (step 4). |
 | `pip` cannot download anything | Internet is off, or the phone number is not verified. |
-| TensorRT rows show an error | TensorRT could not be installed, or its version does not match the image's CUDA. It is installed last and is optional, so the CUDA rows and the other benchmarks are still valid. Send me the error line. |
+| TensorRT rows show an error | TensorRT could not be installed, or its version does not match the image's CUDA. It is installed last and is optional, so the CUDA rows and the other benchmarks are still valid. The row shows the first 120 characters of the error. |
+| "Your notebook tried to allocate more memory than is available" during `latency.py` | The TensorRT runs come last, and the results are saved after each backend, so `latency.md` already holds the CPU, CUDA and MobileSAM rows. Look at the last `peak RSS` line printed. To get the rest without TensorRT, re-run with `--skip-tensorrt`. |
+| `ModelImporter ... legalUINT8: TensorRT does not support UINT8 types` | Expected: `MaskRCNN-12.onnx` casts to UINT8 inside the graph, which TensorRT does not take. onnxruntime gives that part to CUDA and TensorRT the rest. |
+| `Unable to open library: libnvinfer_vc_plugin.so.10`, repeated | TensorRT tried to take a `RoiAlign` node: its plugin needs a library the pip wheels do not ship. `latency.py` excludes `RoiAlign` from TensorRT (`trt_op_types_to_exclude`); if the message is back, that option was dropped. |
+| `TensorRT input: ... has no shape specified` | The TensorRT rows run on `.cache/trt/MaskRCNN-12.shapes.onnx`, the model after onnxruntime's symbolic shape inference. Delete that file if it comes from an older run. |
 | `coco_val.py` is slow or times out on the download | Re-run it with `--images 50`. |
 
 ## Run the plumbing without a GPU
@@ -74,4 +78,4 @@ python benchmarks/mask2former_baseline.py --name dry --random-weights --device c
 
 - **Timing.** Median and p90 over repeated runs, after warm-up runs. GPU timings wait for the GPU to finish (`torch.cuda.synchronize`). The environment is saved with every result: GPU, driver, CUDA and library versions.
 - **Scores.** "Common classes" restricts the averages to the classes a COCO-panoptic model can predict at all. Bollard, buoy, shoe, fountain and boardwalk exist only through region naming or manual correction.
-- **Post-processing.** Mask2Former goes through Hugging Face's post-processing with default thresholds. It can score below the numbers published with the original implementation; `coco_val.py` measures by how much on the sample.
+- **Pre- and post-processing.** Mask2Former goes through Hugging Face's image processor, which resizes every image to 384 × 384, and its post-processing with default thresholds. The original evaluation uses a short side of 800 px, so the scores can be below the published ones; `coco_val.py` measures by how much on the sample.
