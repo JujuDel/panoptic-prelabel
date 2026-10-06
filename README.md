@@ -92,12 +92,13 @@ Every rule has a synthetic test in `tests/test_resolve.py`, including one that s
 ## 3. Quickstart
 
 ```bash
+git clone https://github.com/JujuDel/panoptic-prelabel && cd panoptic-prelabel
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # CPU-only PyTorch (see below)
 pip install -e ".[models]"                                                         # Python ≥ 3.11
 panoptic-prelabel download-weights && panoptic-prelabel run examples/wharf --out out/wharf
 ```
 
-The first line keeps pip from installing the CUDA build of PyTorch, which on Linux pulls several GB of NVIDIA libraries this CPU pipeline does not use. It is PyTorch's documented CPU index, but this repository's own runs used the default PyPI build (`constraints.txt` lists the exact versions). `download-weights` fetches about 220 MB into `./weights` and checks the SHA-256 of each file.
+The first `pip install` keeps pip from installing the CUDA build of PyTorch, which on Linux pulls several GB of NVIDIA libraries this CPU pipeline does not use. It is PyTorch's documented CPU index, but this repository's own runs used the default PyPI build (`constraints.txt` lists the exact versions). `download-weights` fetches about 220 MB into `./weights` and checks the SHA-256 of each file.
 
 `out/wharf/work/` holds the automatic pre-annotation, `out/wharf/panoptic/` the map resolved from the committed CVAT export, and `out/wharf/web/` the files the website uses.
 
