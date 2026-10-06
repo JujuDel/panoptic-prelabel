@@ -1,6 +1,6 @@
 # GPU benchmarks
 
-Three measurements that need an NVIDIA GPU and internet access to model hubs. None of them has been run yet: this folder contains the code and the procedure, and the results will be added to `benchmarks/results/` once they exist.
+Three measurements that need an NVIDIA GPU and internet access to model hubs. They were run once on Kaggle (Tesla T4); the results are in [`results/kaggle/`](results/kaggle/), and section 5 of the [main README](../README.md) sums them up.
 
 | Script | Question it answers | Output |
 |---|---|---|
