@@ -1,0 +1,45 @@
+[W] 'colored' module is not installed, will not use colors when logging. To enable colors, please install the 'colored' module: python3 -m pip install colored
+[I] Loading bytes from /kaggle/working/panoptic-prelabel/weights/MaskRCNN-12.onnx
+[E] ModelImporter.cpp:138: While parsing node number 1481 [RoiAlign -> "2606"]:
+[E] ModelImporter.cpp:140: --- Begin node ---
+    input: "487"
+    input: "2605"
+    input: "2603"
+    output: "2606"
+    name: "2569"
+    op_type: "RoiAlign"
+    attribute {
+      name: "mode"
+      s: "avg"
+      type: STRING
+    }
+    attribute {
+      name: "spatial_scale"
+      f: 0.25
+      type: FLOAT
+    }
+    attribute {
+      name: "sampling_ratio"
+      i: 2
+      type: INT
+    }
+    attribute {
+      name: "output_width"
+      i: 7
+      type: INT
+    }
+    attribute {
+      name: "output_height"
+      i: 7
+      type: INT
+    }
+[E] ModelImporter.cpp:141: --- End node ---
+[E] ModelImporter.cpp:149: ERROR: onnxOpImporters.cpp:6250 In function importRoiAlign:
+    [8] Assertion failed: plugin != nullptr: ROIAlign plugin was not found in the plugin registry!
+[I] ===== Summary =====
+    Stack trace  | Operator  | Node  | Reason                                                                                                                                                                            
+    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                 | RoiAlign  | 2569  | In node 1481 with name: 2569 and operator: RoiAlign (importRoiAlign): UNSUPPORTED_NODE: Assertion failed: plugin != nullptr: ROIAlign plugin was not found in the plugin registry!
+[I] Saving results to /kaggle/working/panoptic-prelabel/benchmarks/results/kaggle/trt_capability/results.txt
+
+--- stderr ---

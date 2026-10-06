@@ -1,0 +1,665 @@
+{
+ "environment": {
+  "python": "3.13.15",
+  "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+  "cpu": "Intel(R) Xeon(R) CPU @ 2.00GHz",
+  "cpu_count": 4,
+  "packages": {
+   "panoptic-prelabel": "0.1.0",
+   "numpy": "2.1.3",
+   "opencv-python-headless": "4.14.0.94",
+   "onnxruntime": null,
+   "onnxruntime-gpu": "1.25.0",
+   "torch": "2.11.0+cu128",
+   "torchvision": "0.26.0+cu128",
+   "timm": "1.0.30",
+   "mobile_sam": "1.0",
+   "transformers": "5.17.0",
+   "tensorrt": null,
+   "tensorrt-cu12": "10.16.1.11",
+   "tensorrt-cu13": null,
+   "tensorrt_cu12_libs": "10.16.1.11",
+   "tensorrt_cu13_libs": null,
+   "polygraphy": "0.53.6"
+  },
+  "gpus": [
+   "Tesla T4, 580.178.04, 15360 MiB",
+   "Tesla T4, 580.178.04, 15360 MiB"
+  ],
+  "torch_cuda": "12.8",
+  "torch_cuda_available": true,
+  "torch_device": "Tesla T4",
+  "cudnn": 91900,
+  "onnxruntime_available_providers": [
+   "TensorrtExecutionProvider",
+   "CUDAExecutionProvider",
+   "CPUExecutionProvider"
+  ],
+  "tensorrt_libs": "loaded libnvinfer.so.10, libnvinfer_plugin.so.10, libnvonnxparser.so.10"
+ },
+ "detector": [
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cpu",
+   "providers": [
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "bay",
+   "input": [
+    3,
+    736,
+    1280
+   ],
+   "network": {
+    "median_ms": 2220.41,
+    "p90_ms": 2368.1,
+    "min_ms": 2125.2,
+    "runs": 5,
+    "warmup": 1
+   },
+   "with_pre_post": {
+    "median_ms": 2217.68,
+    "p90_ms": 2219.05,
+    "min_ms": 2216.32,
+    "runs": 2,
+    "warmup": 1
+   },
+   "detections": 1,
+   "peak_rss_gb": 1.89
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cpu",
+   "providers": [
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "beach",
+   "input": [
+    3,
+    800,
+    1088
+   ],
+   "network": {
+    "median_ms": 2159.7,
+    "p90_ms": 2249.02,
+    "min_ms": 2117.98,
+    "runs": 5,
+    "warmup": 1
+   },
+   "with_pre_post": {
+    "median_ms": 2155.89,
+    "p90_ms": 2170.63,
+    "min_ms": 2141.16,
+    "runs": 2,
+    "warmup": 1
+   },
+   "detections": 2,
+   "peak_rss_gb": 1.89
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cpu",
+   "providers": [
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "street",
+   "input": [
+    3,
+    960,
+    736
+   ],
+   "network": {
+    "median_ms": 2010.7,
+    "p90_ms": 2063.91,
+    "min_ms": 1993.25,
+    "runs": 5,
+    "warmup": 1
+   },
+   "with_pre_post": {
+    "median_ms": 2033.96,
+    "p90_ms": 2042.93,
+    "min_ms": 2024.99,
+    "runs": 2,
+    "warmup": 1
+   },
+   "detections": 7,
+   "peak_rss_gb": 1.9
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cpu",
+   "providers": [
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "wharf",
+   "input": [
+    3,
+    960,
+    544
+   ],
+   "network": {
+    "median_ms": 1666.3,
+    "p90_ms": 1702.57,
+    "min_ms": 1627.41,
+    "runs": 5,
+    "warmup": 1
+   },
+   "with_pre_post": {
+    "median_ms": 1656.85,
+    "p90_ms": 1694.26,
+    "min_ms": 1619.44,
+    "runs": 2,
+    "warmup": 1
+   },
+   "detections": 3,
+   "peak_rss_gb": 1.94
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cuda",
+   "providers": [
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "bay",
+   "input": [
+    3,
+    736,
+    1280
+   ],
+   "network": {
+    "median_ms": 107.21,
+    "p90_ms": 109.48,
+    "min_ms": 106.19,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 127.19,
+    "p90_ms": 129.94,
+    "min_ms": 125.18,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 1,
+   "peak_rss_gb": 1.94,
+   "vs_cpu": {
+    "matched": 1,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 1.0,
+    "max_score_delta": 0.0
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cuda",
+   "providers": [
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "beach",
+   "input": [
+    3,
+    800,
+    1088
+   ],
+   "network": {
+    "median_ms": 109.33,
+    "p90_ms": 110.8,
+    "min_ms": 106.66,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 127.14,
+    "p90_ms": 131.32,
+    "min_ms": 123.05,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 2,
+   "peak_rss_gb": 1.94,
+   "vs_cpu": {
+    "matched": 2,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 1.0,
+    "max_score_delta": 0.0
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cuda",
+   "providers": [
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "street",
+   "input": [
+    3,
+    960,
+    736
+   ],
+   "network": {
+    "median_ms": 96.84,
+    "p90_ms": 98.77,
+    "min_ms": 95.39,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 120.67,
+    "p90_ms": 122.53,
+    "min_ms": 117.65,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 7,
+   "peak_rss_gb": 1.94,
+   "vs_cpu": {
+    "matched": 7,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 1.0,
+    "max_score_delta": 0.0
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "cuda",
+   "providers": [
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.onnx",
+   "scene": "wharf",
+   "input": [
+    3,
+    960,
+    544
+   ],
+   "network": {
+    "median_ms": 80.67,
+    "p90_ms": 82.04,
+    "min_ms": 78.32,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 93.09,
+    "p90_ms": 94.1,
+    "min_ms": 90.49,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 3,
+   "peak_rss_gb": 1.94,
+   "vs_cpu": {
+    "matched": 3,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 1.0,
+    "max_score_delta": 0.0
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "tensorrt_fp32",
+   "providers": [
+    "TensorrtExecutionProvider",
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.shapes.onnx",
+   "scene": "bay",
+   "input": [
+    3,
+    736,
+    1280
+   ],
+   "network": {
+    "median_ms": 105.53,
+    "p90_ms": 108.12,
+    "min_ms": 101.91,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 124.71,
+    "p90_ms": 127.39,
+    "min_ms": 123.08,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 1,
+   "peak_rss_gb": 4.35,
+   "vs_cpu": {
+    "matched": 1,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 1.0,
+    "max_score_delta": 0.0
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "tensorrt_fp32",
+   "providers": [
+    "TensorrtExecutionProvider",
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.shapes.onnx",
+   "scene": "wharf",
+   "input": [
+    3,
+    960,
+    544
+   ],
+   "network": {
+    "median_ms": 80.89,
+    "p90_ms": 82.95,
+    "min_ms": 78.99,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 94.73,
+    "p90_ms": 99.44,
+    "min_ms": 92.63,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 3,
+   "peak_rss_gb": 4.64,
+   "vs_cpu": {
+    "matched": 3,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 1.0,
+    "max_score_delta": 0.0
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "tensorrt_fp16",
+   "providers": [
+    "TensorrtExecutionProvider",
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.shapes.onnx",
+   "scene": "bay",
+   "input": [
+    3,
+    736,
+    1280
+   ],
+   "network": {
+    "median_ms": 45.71,
+    "p90_ms": 49.27,
+    "min_ms": 43.19,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 70.22,
+    "p90_ms": 75.43,
+    "min_ms": 67.93,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 1,
+   "peak_rss_gb": 4.64,
+   "vs_cpu": {
+    "matched": 1,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 0.9152,
+    "max_score_delta": 0.0011
+   }
+  },
+  {
+   "model": "Mask R-CNN (ONNX)",
+   "backend": "tensorrt_fp16",
+   "providers": [
+    "TensorrtExecutionProvider",
+    "CUDAExecutionProvider",
+    "CPUExecutionProvider"
+   ],
+   "onnx": "MaskRCNN-12.shapes.onnx",
+   "scene": "wharf",
+   "input": [
+    3,
+    960,
+    544
+   ],
+   "network": {
+    "median_ms": 40.92,
+    "p90_ms": 42.01,
+    "min_ms": 39.95,
+    "runs": 30,
+    "warmup": 3
+   },
+   "with_pre_post": {
+    "median_ms": 57.79,
+    "p90_ms": 58.49,
+    "min_ms": 56.97,
+    "runs": 15,
+    "warmup": 1
+   },
+   "detections": 3,
+   "peak_rss_gb": 4.66,
+   "vs_cpu": {
+    "matched": 3,
+    "only_cpu": 0,
+    "only_this_backend": 0,
+    "min_mask_iou": 0.8256,
+    "max_score_delta": 0.0379
+   }
+  }
+ ],
+ "sam": [
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cpu",
+   "points_per_batch": 64,
+   "scene": "bay",
+   "time": {
+    "median_ms": 169363.82,
+    "p90_ms": 169363.82,
+    "min_ms": 169363.82,
+    "runs": 1,
+    "warmup": 0
+   },
+   "regions": 65,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 64,
+   "scene": "bay",
+   "time": {
+    "median_ms": 6887.6,
+    "p90_ms": 6940.95,
+    "min_ms": 6848.5,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 65,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 64,
+   "scene": "beach",
+   "time": {
+    "median_ms": 7924.87,
+    "p90_ms": 8004.23,
+    "min_ms": 7908.78,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 22,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 64,
+   "scene": "street",
+   "time": {
+    "median_ms": 7690.43,
+    "p90_ms": 7790.94,
+    "min_ms": 7662.05,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 70,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 64,
+   "scene": "wharf",
+   "time": {
+    "median_ms": 6639.66,
+    "p90_ms": 6661.89,
+    "min_ms": 6627.87,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 30,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 256,
+   "scene": "bay",
+   "time": {
+    "median_ms": 7097.89,
+    "p90_ms": 7136.24,
+    "min_ms": 7089.65,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 65,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 256,
+   "scene": "beach",
+   "time": {
+    "median_ms": 8207.09,
+    "p90_ms": 8235.62,
+    "min_ms": 8185.72,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 22,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 256,
+   "scene": "street",
+   "time": {
+    "median_ms": 7973.71,
+    "p90_ms": 8099.23,
+    "min_ms": 7912.03,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 70,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  },
+  {
+   "model": "MobileSAM automatic masks",
+   "backend": "torch cuda",
+   "points_per_batch": 256,
+   "scene": "wharf",
+   "time": {
+    "median_ms": 6810.79,
+    "p90_ms": 6842.52,
+    "min_ms": 6800.3,
+    "runs": 3,
+    "warmup": 1
+   },
+   "regions": 30,
+   "vs_recorded_cpu": {
+    "exact": 1.0,
+    "matched": 1.0
+   }
+  }
+ ],
+ "trt_capability": {
+  "command": "polygraphy inspect capability /kaggle/working/panoptic-prelabel/weights/MaskRCNN-12.onnx -o /kaggle/working/panoptic-prelabel/benchmarks/results/kaggle/trt_capability",
+  "returncode": 0,
+  "last_lines": [
+   "      type: FLOAT",
+   "    }",
+   "    attribute {",
+   "      name: \"sampling_ratio\"",
+   "      i: 2",
+   "      type: INT",
+   "    }",
+   "    attribute {",
+   "      name: \"output_width\"",
+   "      i: 7",
+   "      type: INT",
+   "    }",
+   "    attribute {",
+   "      name: \"output_height\"",
+   "      i: 7",
+   "      type: INT",
+   "    }",
+   "[E] ModelImporter.cpp:141: --- End node ---",
+   "[E] ModelImporter.cpp:149: ERROR: onnxOpImporters.cpp:6250 In function importRoiAlign:",
+   "    [8] Assertion failed: plugin != nullptr: ROIAlign plugin was not found in the plugin registry!",
+   "[I] ===== Summary =====",
+   "    Stack trace  | Operator  | Node  | Reason                                                                                                                                                                            ",
+   "    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+   "                 | RoiAlign  | 2569  | In node 1481 with name: 2569 and operator: RoiAlign (importRoiAlign): UNSUPPORTED_NODE: Assertion failed: plugin != nullptr: ROIAlign plugin was not found in the plugin registry!",
+   "[I] Saving results to /kaggle/working/panoptic-prelabel/benchmarks/results/kaggle/trt_capability/results.txt"
+  ]
+ }
+}

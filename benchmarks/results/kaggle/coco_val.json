@@ -1,0 +1,83 @@
+{
+ "environment": {
+  "python": "3.13.15",
+  "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+  "cpu": "Intel(R) Xeon(R) CPU @ 2.00GHz",
+  "cpu_count": 4,
+  "packages": {
+   "panoptic-prelabel": "0.1.0",
+   "numpy": "2.1.3",
+   "opencv-python-headless": "4.14.0.94",
+   "onnxruntime": null,
+   "onnxruntime-gpu": "1.25.0",
+   "torch": "2.11.0+cu128",
+   "torchvision": "0.26.0+cu128",
+   "timm": "1.0.30",
+   "mobile_sam": "1.0",
+   "transformers": "5.17.0",
+   "tensorrt": null,
+   "tensorrt-cu12": "10.16.1.11",
+   "tensorrt-cu13": null,
+   "tensorrt_cu12_libs": "10.16.1.11",
+   "tensorrt_cu13_libs": null,
+   "polygraphy": "0.53.6"
+  },
+  "gpus": [
+   "Tesla T4, 580.178.04, 15360 MiB",
+   "Tesla T4, 580.178.04, 15360 MiB"
+  ],
+  "torch_cuda": "12.8",
+  "torch_cuda_available": true,
+  "torch_device": "Tesla T4",
+  "cudnn": 91900,
+  "onnxruntime_available_providers": [
+   "TensorrtExecutionProvider",
+   "CUDAExecutionProvider",
+   "CPUExecutionProvider"
+  ]
+ },
+ "images": 100,
+ "seed": 0,
+ "models": {
+  "facebook/mask2former-swin-tiny-coco-panoptic": {
+   "official": {
+    "PQ": 0.43384682608090025,
+    "SQ": 0.6702547316949931,
+    "RQ": 0.5166433124238577,
+    "PQ_th": 0.4864506474558947,
+    "PQ_st": 0.36101076571552315
+   },
+   "ours": {
+    "PQ": 0.4338468260809002,
+    "SQ": 0.6702547316949927,
+    "RQ": 0.5166433124238581,
+    "PQ_th": 0.4864506474558947,
+    "PQ_st": 0.36101076571552315,
+    "mIoU": 0.5079946085517385,
+    "pixel_acc": 0.7367498707766875
+   },
+   "max_abs_diff": 3.3306690738754696e-16,
+   "median_ms": 68.13
+  },
+  "facebook/mask2former-swin-large-coco-panoptic": {
+   "official": {
+    "PQ": 0.4655572057352029,
+    "SQ": 0.6909773466293014,
+    "RQ": 0.5545362325895138,
+    "PQ_th": 0.511207852496001,
+    "PQ_st": 0.40322651496565176
+   },
+   "ours": {
+    "PQ": 0.46555720573520276,
+    "SQ": 0.6909773466293014,
+    "RQ": 0.554536232589514,
+    "PQ_th": 0.511207852496001,
+    "PQ_st": 0.40322651496565165,
+    "mIoU": 0.5484475539931396,
+    "pixel_acc": 0.7847442461770993
+   },
+   "max_abs_diff": 2.220446049250313e-16,
+   "median_ms": 134.435
+  }
+ }
+}

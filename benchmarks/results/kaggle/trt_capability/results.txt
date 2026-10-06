@@ -1,0 +1,4 @@
+===== Summary =====
+Stack trace  | Operator  | Node  | Reason                                                                                                                                                                            
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+             | RoiAlign  | 2569  | In node 1481 with name: 2569 and operator: RoiAlign (importRoiAlign): UNSUPPORTED_NODE: Assertion failed: plugin != nullptr: ROIAlign plugin was not found in the plugin registry!

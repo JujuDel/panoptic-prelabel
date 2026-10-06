@@ -1,0 +1,359 @@
+{
+ "info": {
+  "description": "panoptic-prelabel output (COCO panoptic format)"
+ },
+ "images": [
+  {
+   "id": 1,
+   "file_name": "image.jpg",
+   "width": 1707,
+   "height": 960
+  }
+ ],
+ "annotations": [
+  {
+   "image_id": 1,
+   "file_name": "panoptic.png",
+   "segments_info": [
+    {
+     "id": 1,
+     "category_id": 2,
+     "iscrowd": 0,
+     "area": 91612,
+     "bbox": [
+      0,
+      727,
+      649,
+      233
+     ]
+    },
+    {
+     "id": 2,
+     "category_id": 13,
+     "iscrowd": 0,
+     "area": 446436,
+     "bbox": [
+      0,
+      0,
+      1523,
+      416
+     ]
+    },
+    {
+     "id": 3,
+     "category_id": 19,
+     "iscrowd": 0,
+     "area": 40170,
+     "bbox": [
+      0,
+      281,
+      1303,
+      136
+     ]
+    },
+    {
+     "id": 4,
+     "category_id": 16,
+     "iscrowd": 0,
+     "area": 564246,
+     "bbox": [
+      0,
+      0,
+      1707,
+      960
+     ]
+    },
+    {
+     "id": 5,
+     "category_id": 14,
+     "iscrowd": 0,
+     "area": 109231,
+     "bbox": [
+      611,
+      508,
+      1096,
+      301
+     ]
+    },
+    {
+     "id": 6,
+     "category_id": 18,
+     "iscrowd": 0,
+     "area": 68143,
+     "bbox": [
+      0,
+      436,
+      907,
+      300
+     ]
+    },
+    {
+     "id": 7,
+     "category_id": 17,
+     "iscrowd": 0,
+     "area": 47404,
+     "bbox": [
+      1271,
+      755,
+      436,
+      205
+     ]
+    },
+    {
+     "id": 8,
+     "category_id": 1,
+     "iscrowd": 0,
+     "area": 265965,
+     "bbox": [
+      68,
+      200,
+      669,
+      760
+     ]
+    }
+   ]
+  }
+ ],
+ "categories": [
+  {
+   "id": 1,
+   "name": "person",
+   "isthing": 1,
+   "color": [
+    250,
+    50,
+    83
+   ]
+  },
+  {
+   "id": 2,
+   "name": "backpack",
+   "isthing": 1,
+   "color": [
+    255,
+    96,
+    55
+   ]
+  },
+  {
+   "id": 3,
+   "name": "bag",
+   "isthing": 1,
+   "color": [
+    247,
+    128,
+    0
+   ]
+  },
+  {
+   "id": 4,
+   "name": "bird",
+   "isthing": 1,
+   "color": [
+    250,
+    250,
+    55
+   ]
+  },
+  {
+   "id": 5,
+   "name": "dog",
+   "isthing": 1,
+   "color": [
+    255,
+    0,
+    204
+   ]
+  },
+  {
+   "id": 6,
+   "name": "phone",
+   "isthing": 1,
+   "color": [
+    170,
+    240,
+    209
+   ]
+  },
+  {
+   "id": 7,
+   "name": "shoe",
+   "isthing": 1,
+   "color": [
+    115,
+    51,
+    128
+   ]
+  },
+  {
+   "id": 8,
+   "name": "buoy",
+   "isthing": 1,
+   "color": [
+    255,
+    204,
+    51
+   ]
+  },
+  {
+   "id": 9,
+   "name": "bollard",
+   "isthing": 1,
+   "color": [
+    140,
+    120,
+    240
+   ]
+  },
+  {
+   "id": 10,
+   "name": "car",
+   "isthing": 1,
+   "color": [
+    0,
+    229,
+    255
+   ]
+  },
+  {
+   "id": 11,
+   "name": "truck",
+   "isthing": 1,
+   "color": [
+    255,
+    46,
+    154
+   ]
+  },
+  {
+   "id": 12,
+   "name": "sign",
+   "isthing": 1,
+   "color": [
+    200,
+    255,
+    0
+   ]
+  },
+  {
+   "id": 13,
+   "name": "sky",
+   "isthing": 0,
+   "color": [
+    61,
+    61,
+    245
+   ]
+  },
+  {
+   "id": 14,
+   "name": "sea",
+   "isthing": 0,
+   "color": [
+    10,
+    185,
+    230
+   ]
+  },
+  {
+   "id": 15,
+   "name": "sand",
+   "isthing": 0,
+   "color": [
+    232,
+    210,
+    138
+   ]
+  },
+  {
+   "id": 16,
+   "name": "tree",
+   "isthing": 0,
+   "color": [
+    36,
+    179,
+    83
+   ]
+  },
+  {
+   "id": 17,
+   "name": "grass",
+   "isthing": 0,
+   "color": [
+    176,
+    191,
+    26
+   ]
+  },
+  {
+   "id": 18,
+   "name": "rock",
+   "isthing": 0,
+   "color": [
+    95,
+    107,
+    122
+   ]
+  },
+  {
+   "id": 19,
+   "name": "building",
+   "isthing": 0,
+   "color": [
+    178,
+    80,
+    80
+   ]
+  },
+  {
+   "id": 20,
+   "name": "fountain",
+   "isthing": 0,
+   "color": [
+    192,
+    160,
+    128
+   ]
+  },
+  {
+   "id": 21,
+   "name": "boardwalk",
+   "isthing": 0,
+   "color": [
+    159,
+    127,
+    95
+   ]
+  },
+  {
+   "id": 22,
+   "name": "pavement",
+   "isthing": 0,
+   "color": [
+    158,
+    158,
+    158
+   ]
+  },
+  {
+   "id": 23,
+   "name": "road",
+   "isthing": 0,
+   "color": [
+    90,
+    90,
+    110
+   ]
+  },
+  {
+   "id": 24,
+   "name": "wall",
+   "isthing": 0,
+   "color": [
+    196,
+    183,
+    166
+   ]
+  }
+ ]
+}
